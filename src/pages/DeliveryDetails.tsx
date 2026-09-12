@@ -1,0 +1,242 @@
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
+import {
+  ArrowLeft,
+  Navigation,
+  CheckCircle2,
+  Copy,
+  MessageCircle,
+  MapPin,
+  Clock,
+  Wallet,
+  StickyNote,
+  Sparkles,
+} from "lucide-react";
+import { useDeliveries } from "@/context/DeliveryContext";
+import { useToast } from "@/context/ToastContext";
+import { StatusBadge } from "@/components/StatusBadge";
+import { MapView } from "@/components/MapView";
+import { Button } from "@/components/ui/Button";
+import { distanceKm, estimateMinutes, formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
+
+export default function DeliveryDetails() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { getDelivery, simulateCustomerLocation, markDelivered } = useDeliveries();
+  const { showToast } = useToast();
+  const [confirmDeliver, setConfirmDeliver] = useState(false);
+
+  const delivery = id ? getDelivery(id) : undefined;
+
+  if (!delivery) {
+    return (
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <p className="font-display text-xl font-semibold text-ink-900">Livraison introuvable</p>
+        <p className="mt-1 text-ink-500">Cette livraison n'existe pas ou plus.</p>
+        <Link to="/deliveries" className="mt-5 inline-block">
+          <Button variant="outline">Retour aux livraisons</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const hasLocation = delivery.customerLatitude !== undefined && delivery.customerLongitude !== undefined;
+  const distance = hasLocation
+    ? distanceKm(delivery.driverLatitude, delivery.driverLongitude, delivery.customerLatitude!, delivery.customerLongitude!)
+    : undefined;
+  const eta = distance !== undefined ? estimateMinutes(distance) : undefined;
+  const fullLink = `${window.location.origin}${delivery.shareUrl}`;
+  const message = `🚚 Votre livraison est en route.\nOuvrez ce lien et partagez votre position avec votre livreur :\n${fullLink}`;
+
+  return (
+    <div>
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-900"
+      >
+        <ArrowLeft className="h-4 w-4" /> Retour
+      </button>
+
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="font-display text-2xl font-bold text-ink-950">{delivery.customerName}</h1>
+            <StatusBadge status={delivery.status} />
+          </div>
+          <p className="mt-1 text-sm text-ink-500">
+            {delivery.id} {delivery.reference && `· réf. ${delivery.reference}`} · créée à {formatTime(delivery.createdAt)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        {/* MAP + primary actions */}
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-ink-100 shadow-card">
+            <div className="h-72 sm:h-96">
+              {hasLocation ? (
+                <MapView
+                  driver={{ lat: delivery.driverLatitude, lon: delivery.driverLongitude }}
+                  customer={{ lat: delivery.customerLatitude!, lon: delivery.customerLongitude! }}
+                />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-3 bg-ink-50 px-6 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warn-50 text-warn-500">
+                    <Clock className="h-6 w-6" />
+                  </div>
+                  <p className="font-display font-semibold text-ink-900">En attente de la position du client</p>
+                  <p className="max-w-sm text-sm text-ink-500">
+                    Le client n'a pas encore partagé sa position. Vous pouvez lui renvoyer le lien ou simuler sa réponse pour la démo.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => window.open(delivery.shareUrl, "_blank")}>
+                    Ouvrir la page client
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {hasLocation && (
+            <div className="grid grid-cols-3 gap-3">
+              <StatBox label="Distance" value={`${distance!.toFixed(1)} km`} />
+              <StatBox label="Temps estimé" value={`${eta} min`} />
+              <StatBox
+                label="Coordonnées"
+                value={`${delivery.customerLatitude!.toFixed(4)}, ${delivery.customerLongitude!.toFixed(4)}`}
+                small
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {hasLocation && (
+              <a
+                href={googleMapsUrl(delivery.customerLatitude!, delivery.customerLongitude!)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1"
+              >
+                <Button fullWidth size="lg">
+                  <Navigation className="h-4.5 w-4.5" /> Ouvrir dans Google Maps
+                </Button>
+              </a>
+            )}
+            {delivery.status !== "delivered" && hasLocation && (
+              <>
+                {confirmDeliver ? (
+                  <div className="flex flex-1 gap-2">
+                    <Button
+                      variant="success"
+                      fullWidth
+                      onClick={() => {
+                        markDelivered(delivery.id);
+                        showToast("Livraison marquée comme livrée", "success");
+                        setConfirmDeliver(false);
+                      }}
+                    >
+                      Confirmer
+                    </Button>
+                    <Button variant="ghost" onClick={() => setConfirmDeliver(false)}>
+                      Annuler
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="lg" onClick={() => setConfirmDeliver(true)}>
+                    <CheckCircle2 className="h-4.5 w-4.5" /> Marquer comme livrée
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+
+          {!hasLocation && (
+            <button
+              onClick={() => {
+                simulateCustomerLocation(delivery.id);
+                showToast("Position du client reçue", "success");
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-brand-300 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-100"
+            >
+              <Sparkles className="h-4 w-4" /> Simuler la réception de la position (démo)
+            </button>
+          )}
+        </div>
+
+        {/* Side info */}
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
+            <h2 className="mb-4 font-display font-semibold text-ink-900">Détails</h2>
+            <dl className="space-y-3 text-sm">
+              <Row icon={Wallet} label="Montant à encaisser" value={formatAmount(delivery.amount)} />
+              <Row icon={Clock} label="Créée le" value={formatDateTime(delivery.createdAt)} />
+              {delivery.notes && <Row icon={StickyNote} label="Notes" value={delivery.notes} />}
+            </dl>
+          </div>
+
+          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
+            <h2 className="mb-3 font-display font-semibold text-ink-900">Lien client</h2>
+            <div className="flex items-center gap-2 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2.5">
+              <p className="flex-1 truncate text-xs font-medium text-ink-700">{fullLink}</p>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard?.writeText(fullLink);
+                  showToast("Lien copié", "success");
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" /> Copier
+              </Button>
+              <a href={whatsappUrl("", message)} target="_blank" rel="noreferrer">
+                <Button size="sm" variant="success" fullWidth onClick={() => showToast("WhatsApp ouvert", "info")}>
+                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                </Button>
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
+            <h2 className="mb-4 font-display font-semibold text-ink-900">Historique</h2>
+            <ol className="space-y-4">
+              {delivery.timeline.map((event, i) => (
+                <li key={event.id} className="relative flex gap-3 pl-0.5">
+                  <div className="flex flex-col items-center">
+                    <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${i === delivery.timeline.length - 1 ? "bg-brand-600" : "bg-ink-300"}`} />
+                    {i !== delivery.timeline.length - 1 && <span className="w-px flex-1 bg-ink-200" />}
+                  </div>
+                  <div className="pb-1">
+                    <p className="text-sm font-medium text-ink-900">{event.label}</p>
+                    <p className="text-xs text-ink-500">{formatTime(event.timestamp)}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatBox({ label, value, small }: { label: string; value: string; small?: boolean }) {
+  return (
+    <div className="rounded-2xl border border-ink-100 bg-white p-3.5 text-center shadow-card">
+      <p className={small ? "font-display text-sm font-bold text-ink-950" : "font-display text-lg font-bold text-ink-950"}>{value}</p>
+      <p className="mt-0.5 text-[11px] text-ink-500">{label}</p>
+    </div>
+  );
+}
+
+function Row({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" />
+      <div>
+        <dt className="text-xs text-ink-500">{label}</dt>
+        <dd className="font-medium text-ink-900">{value}</dd>
+      </div>
+    </div>
+  );
+}
