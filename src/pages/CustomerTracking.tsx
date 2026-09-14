@@ -1,33 +1,51 @@
 import { useEffect, useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { MapPin, Truck, ShieldCheck, LocateFixed, Sparkles, CheckCircle2 } from "lucide-react";
-import { useDeliveries } from "@/context/DeliveryContext";
+import { MapPin, Truck, ShieldCheck, LocateFixed, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { deliveriesApi, ApiError } from "@/lib/api";
 import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
-import { jitterCoord } from "@/lib/utils";
 import { Delivery } from "@/types";
 
-type ShareState = "idle" | "locating" | "denied" | "shared";
+type ShareState = "loading" | "not_found" | "idle" | "locating" | "denied" | "shared";
 
 export default function CustomerTracking() {
   const { deliveryId } = useParams<{ deliveryId: string }>();
-  const { getDelivery, markLinkOpened, setCustomerLocation } = useDeliveries();
-  const [state, setState] = useState<ShareState>("idle");
-
-  const delivery = deliveryId ? getDelivery(deliveryId) : undefined;
+  const [delivery, setDelivery] = useState<Delivery | null>(null);
+  const [state, setState] = useState<ShareState>("loading");
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (deliveryId) markLinkOpened(deliveryId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!deliveryId) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const data = await deliveriesApi.getPublic(deliveryId);
+        if (cancelled) return;
+        setDelivery(data);
+        setState(data.status === "location_received" || data.status === "delivered" ? "shared" : "idle");
+        // best-effort: let the driver know the customer opened the link
+        deliveriesApi.markLinkOpened(deliveryId).catch(() => {});
+      } catch {
+        if (!cancelled) setState("not_found");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [deliveryId]);
 
-  useEffect(() => {
-    if (delivery?.status === "location_received" || delivery?.status === "delivered") {
-      setState("shared");
-    }
-  }, [delivery?.status]);
+  if (state === "loading") {
+    return (
+      <CenteredShell>
+        <Loader2 className="h-7 w-7 animate-spin text-brand-500" />
+        <p className="mt-4 text-sm text-ink-500">Chargement de la livraison...</p>
+      </CenteredShell>
+    );
+  }
 
-  if (!delivery) {
+  if (state === "not_found" || !delivery) {
     return (
       <CenteredShell>
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink-100 text-ink-500">
@@ -43,26 +61,29 @@ export default function CustomerTracking() {
 
   function requestLocation() {
     setState("locating");
+    setLocationError(null);
     if (!("geolocation" in navigator)) {
+      setLocationError("Votre navigateur ne supporte pas la géolocalisation.");
       setState("denied");
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCustomerLocation(delivery!.id, pos.coords.latitude, pos.coords.longitude);
-        setState("shared");
+      async (pos) => {
+        try {
+          const updated = await deliveriesApi.shareLocation(delivery!.id, pos.coords.latitude, pos.coords.longitude);
+          setDelivery(updated);
+          setState("shared");
+        } catch (err) {
+          setLocationError(err instanceof ApiError ? err.message : "Impossible d'envoyer votre position au livreur.");
+          setState("denied");
+        }
       },
       () => {
+        setLocationError("Position refusée ou indisponible. Autorisez la géolocalisation puis réessayez.");
         setState("denied");
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
-  }
-
-  function simulateLocation() {
-    const { lat, lon } = jitterCoord(delivery!.driverLatitude, delivery!.driverLongitude, 1.4);
-    setCustomerLocation(delivery!.id, lat, lon);
-    setState("shared");
   }
 
   return (
@@ -119,15 +140,14 @@ export default function CustomerTracking() {
                 </p>
                 <p className="mt-1 text-sm text-ink-500">Un seul tap suffit.</p>
 
-                {state === "denied" && (
+                {state === "denied" && locationError && (
                   <div className="mt-5 w-full rounded-xl border border-warn-200 bg-warn-50 p-4 text-left">
-                    <p className="text-sm font-semibold text-warn-600">Position indisponible</p>
-                    <p className="mt-1 text-xs text-ink-600">
-                      Votre navigateur a bloqué ou n'a pas pu obtenir votre position. Vous pouvez simuler votre position
-                      pour continuer la démonstration.
-                    </p>
-                    <Button size="sm" variant="outline" className="mt-3" onClick={simulateLocation}>
-                      <Sparkles className="h-3.5 w-3.5" /> Simuler ma position
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warn-600" />
+                      <p className="text-sm text-warn-700">{locationError}</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="mt-3" onClick={requestLocation}>
+                      Réessayer
                     </Button>
                   </div>
                 )}
@@ -169,9 +189,11 @@ function SharedState({ delivery }: { delivery: Delivery }) {
         </span>
       </div>
 
-      <div className="mt-5 h-56 overflow-hidden rounded-2xl border border-ink-100">
-        <MapView customer={{ lat: delivery.customerLatitude!, lon: delivery.customerLongitude! }} interactive={false} zoom={15} />
-      </div>
+      {delivery.customerLatitude !== undefined && delivery.customerLongitude !== undefined && (
+        <div className="mt-5 h-56 overflow-hidden rounded-2xl border border-ink-100">
+          <MapView customer={{ lat: delivery.customerLatitude, lon: delivery.customerLongitude }} interactive={false} zoom={15} />
+        </div>
+      )}
 
       <p className="mt-5 text-center text-sm text-ink-500">Vous pouvez fermer cette page maintenant.</p>
     </div>

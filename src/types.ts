@@ -9,6 +9,7 @@ export interface TimelineEvent {
 export interface Delivery {
   id: string; // e.g. DL-1042
   customerName: string;
+  customerPhone: string;
   reference?: string;
   amount?: number;
   notes?: string;
@@ -27,8 +28,9 @@ export interface Delivery {
 }
 
 export interface Driver {
+  id?: string;
   name: string;
-  phone: string;
+  phone?: string;
   email: string;
   plan: "free" | "pro";
 }

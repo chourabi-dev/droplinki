@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, MessageCircle, Check, PackagePlus, Sparkles } from "lucide-react";
+import { ArrowLeft, Copy, MessageCircle, Check, PackagePlus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
-import { useDeliveries } from "@/context/DeliveryContext";
+import { useDeliveries, deliveryErrorMessage } from "@/context/DeliveryContext";
 import { useToast } from "@/context/ToastContext";
 import { Delivery } from "@/types";
 import { whatsappUrl } from "@/lib/utils";
@@ -14,21 +14,35 @@ export default function CreateDelivery() {
   const { showToast } = useToast();
 
   const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [reference, setReference] = useState("");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [created, setCreated] = useState<Delivery | null>(null);
   const [copied, setCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const delivery = createDelivery({
-      customerName: customerName.trim(),
-      reference: reference.trim() || undefined,
-      amount: amount ? Number(amount) : undefined,
-      notes: notes.trim() || undefined,
-    });
-    setCreated(delivery);
+    setError(null);
+    setSubmitting(true);
+    try {
+      const delivery = await createDelivery({
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        reference: reference.trim() || undefined,
+        amount: amount ? Number(amount) : undefined,
+        notes: notes.trim() || undefined,
+      });
+      setCreated(delivery);
+    } catch (err) {
+      const message = deliveryErrorMessage(err);
+      setError(message);
+      showToast(message, "warning");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (created) {
@@ -67,7 +81,7 @@ export default function CreateDelivery() {
               {copied ? "Copié !" : "Copier le lien"}
             </Button>
             <a
-              href={whatsappUrl("", message)}
+              href={whatsappUrl(created.customerPhone, message)}
               target="_blank"
               rel="noreferrer"
               onClick={() => showToast("WhatsApp ouvert", "info")}
@@ -76,20 +90,6 @@ export default function CreateDelivery() {
                 <MessageCircle className="h-4 w-4" /> Envoyer sur WhatsApp
               </Button>
             </a>
-          </div>
-
-          <div className="mt-5 flex items-start gap-2 rounded-xl bg-brand-50 p-3.5 text-xs text-brand-700">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <p>
-              Astuce démo — ouvrez{" "}
-              <button
-                onClick={() => window.open(created.shareUrl, "_blank")}
-                className="font-semibold underline underline-offset-2"
-              >
-                {created.shareUrl}
-              </button>{" "}
-              dans un nouvel onglet pour simuler le côté client.
-            </p>
           </div>
         </div>
 
@@ -102,6 +102,7 @@ export default function CreateDelivery() {
             onClick={() => {
               setCreated(null);
               setCustomerName("");
+              setCustomerPhone("");
               setReference("");
               setAmount("");
               setNotes("");
@@ -126,6 +127,13 @@ export default function CreateDelivery() {
       <h1 className="font-display text-2xl font-bold text-ink-950">Nouvelle livraison</h1>
       <p className="mt-1.5 text-ink-500">Quelques infos suffisent — le lien est généré instantanément.</p>
 
+      {error && (
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{error}</p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">
         <Input
           label="Nom du client"
@@ -133,6 +141,15 @@ export default function CreateDelivery() {
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
           autoFocus
+          required
+        />
+        <Input
+          label="Téléphone du client"
+          type="tel"
+          placeholder="+216 20 123 456"
+          value={customerPhone}
+          onChange={(e) => setCustomerPhone(e.target.value)}
+          hint="Utilisé pour envoyer le lien de suivi par WhatsApp/SMS."
           required
         />
         <Input
@@ -155,8 +172,8 @@ export default function CreateDelivery() {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
-        <Button type="submit" fullWidth disabled={!customerName.trim()}>
-          <PackagePlus className="h-4 w-4" /> Créer la livraison
+        <Button type="submit" fullWidth disabled={!customerName.trim() || !customerPhone.trim() || submitting}>
+          <PackagePlus className="h-4 w-4" /> {submitting ? "Création..." : "Créer la livraison"}
         </Button>
       </form>
     </div>

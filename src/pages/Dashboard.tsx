@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, MapPinned, ArrowRight } from "lucide-react";
+import { Plus, Package, Clock, CheckCircle2, MapPinned, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { useDeliveries } from "@/context/DeliveryContext";
 import { useAuth } from "@/context/AuthContext";
 import { DeliveryCard } from "@/components/DeliveryCard";
@@ -13,7 +13,7 @@ function isToday(iso: string) {
 }
 
 export default function Dashboard() {
-  const { deliveries } = useDeliveries();
+  const { deliveries, isLoading, error } = useDeliveries();
   const { driver } = useAuth();
 
   const todayDeliveries = deliveries.filter((d) => isToday(d.createdAt));
@@ -39,7 +39,9 @@ export default function Dashboard() {
     <div>
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink-950 sm:text-3xl">Bonjour, {driver.name.split(" ")[0]} 👋</h1>
+          <h1 className="font-display text-2xl font-bold text-ink-950 sm:text-3xl">
+            Bonjour{driver?.name ? `, ${driver.name.split(" ")[0]}` : ""} 👋
+          </h1>
           <p className="mt-1 text-ink-500">Voici un aperçu de votre activité.</p>
         </div>
         <Link to="/create-delivery" className="hidden sm:block">
@@ -69,7 +71,13 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        {recent.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-14">
+            <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
+          </div>
+        ) : error ? (
+          <ErrorState message={error} />
+        ) : recent.length === 0 ? (
           <EmptyState />
         ) : (
           <div className="space-y-3">
@@ -79,6 +87,16 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center rounded-2xl border border-dashed border-red-200 bg-red-50 px-6 py-14 text-center">
+      <AlertCircle className="mb-3 h-8 w-8 text-red-500" />
+      <p className="font-display font-semibold text-ink-900">Impossible de charger les livraisons</p>
+      <p className="mt-1 max-w-xs text-sm text-ink-500">{message}</p>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { HowItWorks } from "@/components/HowItWorks";
 import { PhoneMockup } from "@/components/PhoneMockup";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 const FEATURES = [
   {
@@ -36,6 +37,9 @@ const FEATURES = [
 ];
 
 export default function Landing() {
+  const { isAuthenticated } = useAuth();
+  const ctaTo = isAuthenticated ? "/dashboard" : "/signup";
+  const ctaLabel = isAuthenticated ? "Tableau de bord" : "Commencer gratuitement";
   return (
     <div className="bg-white">
       {/* NAV */}
@@ -53,12 +57,20 @@ export default function Landing() {
             <a href="#pricing" className="hover:text-ink-900">Tarifs</a>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/login" className="hidden text-sm font-semibold text-ink-700 hover:text-ink-900 sm:block">
-              Connexion
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">Commencer</Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard">
+                <Button size="sm">Tableau de bord</Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="hidden text-sm font-semibold text-ink-700 hover:text-ink-900 sm:block">
+                  Connexion
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Commencer</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -79,9 +91,9 @@ export default function Landing() {
               jusqu'à sa porte.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/signup">
+              <Link to={ctaTo}>
                 <Button size="lg" fullWidth className="sm:w-auto">
-                  Commencer gratuitement <ArrowRight className="h-4.5 w-4.5" />
+                  {ctaLabel} <ArrowRight className="h-4.5 w-4.5" />
                 </Button>
               </Link>
               <a href="#how">
@@ -164,8 +176,8 @@ export default function Landing() {
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-go-500" /> Partage de lien WhatsApp</li>
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-go-500" /> Carte en temps réel</li>
               </ul>
-              <Link to="/signup" className="mt-7 block">
-                <Button variant="outline" fullWidth>Commencer</Button>
+              <Link to={ctaTo} className="mt-7 block">
+                <Button variant="outline" fullWidth>{isAuthenticated ? "Tableau de bord" : "Commencer"}</Button>
               </Link>
             </div>
             <div className="relative rounded-2xl border-2 border-brand-600 bg-white p-7 shadow-lift">
@@ -184,7 +196,7 @@ export default function Landing() {
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-go-500" /> Statistiques détaillées</li>
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-go-500" /> Support prioritaire</li>
               </ul>
-              <Link to="/signup" className="mt-7 block">
+              <Link to={isAuthenticated ? "/profile" : "/signup"} className="mt-7 block">
                 <Button fullWidth>Passer en Pro</Button>
               </Link>
             </div>
@@ -199,8 +211,8 @@ export default function Landing() {
             Votre prochaine livraison n'a pas besoin d'un appel téléphonique.
           </h2>
           <p className="mx-auto mt-3 max-w-md text-ink-500">Créez votre compte et envoyez votre premier lien en moins d'une minute.</p>
-          <Link to="/signup" className="mt-7 inline-block">
-            <Button size="lg">Créer mon compte <ArrowRight className="h-4.5 w-4.5" /></Button>
+          <Link to={ctaTo} className="mt-7 inline-block">
+            <Button size="lg">{isAuthenticated ? "Aller au tableau de bord" : "Créer mon compte"} <ArrowRight className="h-4.5 w-4.5" /></Button>
           </Link>
         </div>
       </section>
@@ -211,7 +223,7 @@ export default function Landing() {
             <MapPin className="h-4 w-4 text-brand-600" />
             <span className="font-display font-semibold text-ink-900">DropLink</span>
           </div>
-          <p>© 2026 DropLink. Prototype de démonstration.</p>
+          <p>© 2026 DropLink.</p>
         </div>
       </footer>
     </div>

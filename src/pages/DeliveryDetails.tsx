@@ -1,34 +1,71 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Navigation,
   CheckCircle2,
   Copy,
   MessageCircle,
-  MapPin,
   Clock,
   Wallet,
   StickyNote,
-  Sparkles,
+  Phone,
+  Loader2,
 } from "lucide-react";
-import { useDeliveries } from "@/context/DeliveryContext";
+import { useDeliveries, deliveryErrorMessage } from "@/context/DeliveryContext";
 import { useToast } from "@/context/ToastContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
 import { distanceKm, estimateMinutes, formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
+import { Delivery } from "@/types";
 
 export default function DeliveryDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getDelivery, simulateCustomerLocation, markDelivered } = useDeliveries();
+  const { getDelivery, fetchDelivery, markDelivered } = useDeliveries();
   const { showToast } = useToast();
   const [confirmDeliver, setConfirmDeliver] = useState(false);
+  const [delivering, setDelivering] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
-  const delivery = id ? getDelivery(id) : undefined;
+  const cached = id ? getDelivery(id) : undefined;
+  const [delivery, setDelivery] = useState<Delivery | undefined>(cached);
 
-  if (!delivery) {
+  useEffect(() => {
+    setDelivery(cached);
+  }, [cached]);
+
+  useEffect(() => {
+    if (!id || cached) return;
+    let cancelled = false;
+    setLoading(true);
+    fetchDelivery(id)
+      .then((d) => {
+        if (!cancelled) setDelivery(d);
+      })
+      .catch(() => {
+        if (!cancelled) setNotFound(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
+      </div>
+    );
+  }
+
+  if (!delivery || notFound) {
     return (
       <div className="mx-auto max-w-lg py-16 text-center">
         <p className="font-display text-xl font-semibold text-ink-900">Livraison introuvable</p>
@@ -47,6 +84,19 @@ export default function DeliveryDetails() {
   const eta = distance !== undefined ? estimateMinutes(distance) : undefined;
   const fullLink = `${window.location.origin}${delivery.shareUrl}`;
   const message = `🚚 Votre livraison est en route.\nOuvrez ce lien et partagez votre position avec votre livreur :\n${fullLink}`;
+
+  async function handleConfirmDelivered() {
+    setDelivering(true);
+    try {
+      await markDelivered(delivery!.id);
+      showToast("Livraison marquée comme livrée", "success");
+      setConfirmDeliver(false);
+    } catch (err) {
+      showToast(deliveryErrorMessage(err), "warning");
+    } finally {
+      setDelivering(false);
+    }
+  }
 
   return (
     <div>
@@ -86,11 +136,13 @@ export default function DeliveryDetails() {
                   </div>
                   <p className="font-display font-semibold text-ink-900">En attente de la position du client</p>
                   <p className="max-w-sm text-sm text-ink-500">
-                    Le client n'a pas encore partagé sa position. Vous pouvez lui renvoyer le lien ou simuler sa réponse pour la démo.
+                    Le client n'a pas encore ouvert le lien ou pas encore partagé sa position.
                   </p>
-                  <Button size="sm" variant="outline" onClick={() => window.open(delivery.shareUrl, "_blank")}>
-                    Ouvrir la page client
-                  </Button>
+                  <a href={whatsappUrl(delivery.customerPhone, message)} target="_blank" rel="noreferrer">
+                    <Button size="sm" variant="outline">
+                      <MessageCircle className="h-4 w-4" /> Relancer sur WhatsApp
+                    </Button>
+                  </a>
                 </div>
               )}
             </div>
@@ -125,18 +177,10 @@ export default function DeliveryDetails() {
               <>
                 {confirmDeliver ? (
                   <div className="flex flex-1 gap-2">
-                    <Button
-                      variant="success"
-                      fullWidth
-                      onClick={() => {
-                        markDelivered(delivery.id);
-                        showToast("Livraison marquée comme livrée", "success");
-                        setConfirmDeliver(false);
-                      }}
-                    >
-                      Confirmer
+                    <Button variant="success" fullWidth disabled={delivering} onClick={handleConfirmDelivered}>
+                      {delivering ? "Confirmation..." : "Confirmer"}
                     </Button>
-                    <Button variant="ghost" onClick={() => setConfirmDeliver(false)}>
+                    <Button variant="ghost" onClick={() => setConfirmDeliver(false)} disabled={delivering}>
                       Annuler
                     </Button>
                   </div>
@@ -148,18 +192,6 @@ export default function DeliveryDetails() {
               </>
             )}
           </div>
-
-          {!hasLocation && (
-            <button
-              onClick={() => {
-                simulateCustomerLocation(delivery.id);
-                showToast("Position du client reçue", "success");
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-brand-300 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-100"
-            >
-              <Sparkles className="h-4 w-4" /> Simuler la réception de la position (démo)
-            </button>
-          )}
         </div>
 
         {/* Side info */}
@@ -167,6 +199,7 @@ export default function DeliveryDetails() {
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
             <h2 className="mb-4 font-display font-semibold text-ink-900">Détails</h2>
             <dl className="space-y-3 text-sm">
+              <Row icon={Phone} label="Téléphone du client" value={delivery.customerPhone || "—"} />
               <Row icon={Wallet} label="Montant à encaisser" value={formatAmount(delivery.amount)} />
               <Row icon={Clock} label="Créée le" value={formatDateTime(delivery.createdAt)} />
               {delivery.notes && <Row icon={StickyNote} label="Notes" value={delivery.notes} />}
@@ -189,7 +222,7 @@ export default function DeliveryDetails() {
               >
                 <Copy className="h-3.5 w-3.5" /> Copier
               </Button>
-              <a href={whatsappUrl("", message)} target="_blank" rel="noreferrer">
+              <a href={whatsappUrl(delivery.customerPhone, message)} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="success" fullWidth onClick={() => showToast("WhatsApp ouvert", "info")}>
                   <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                 </Button>

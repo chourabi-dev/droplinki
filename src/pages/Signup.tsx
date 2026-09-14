@@ -1,30 +1,63 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { MapPin, ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { MapPin, ArrowRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, authErrorMessage } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { GOOGLE_CLIENT_ID, renderGoogleButton } from "@/lib/googleAuth";
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth();
   const { showToast } = useToast();
   const [form, setForm] = useState({ name: "", phone: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!googleBtnRef.current) return;
+    renderGoogleButton(googleBtnRef.current, async (credential) => {
+      try {
+        await loginWithGoogle(credential);
+        showToast("Compte créé avec succès", "success");
+        navigate("/dashboard");
+      } catch (err) {
+        setError(authErrorMessage(err));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink-200 border-t-brand-600" />
+      </div>
+    );
+  }
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   function update(key: keyof typeof form, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    setTimeout(() => {
-      signup({ name: form.name || "Nouveau livreur", phone: form.phone, email: form.email });
+    try {
+      await signup(form);
       showToast("Compte créé avec succès", "success");
       navigate("/dashboard");
-    }, 500);
+    } catch (err) {
+      setError(authErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -41,12 +74,20 @@ export default function Signup() {
           <h1 className="font-display text-2xl font-bold text-ink-950">Créer votre compte</h1>
           <p className="mt-1.5 text-sm text-ink-500">Gratuit, 5 livraisons par mois incluses.</p>
 
+          {error && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <Input
               label="Nom complet"
               placeholder="Karim Bouazizi"
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
+              autoComplete="name"
               required
             />
             <Input
@@ -55,6 +96,7 @@ export default function Signup() {
               placeholder="+216 20 123 456"
               value={form.phone}
               onChange={(e) => update("phone", e.target.value)}
+              autoComplete="tel"
               required
             />
             <Input
@@ -63,6 +105,7 @@ export default function Signup() {
               placeholder="vous@exemple.com"
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
+              autoComplete="email"
               required
             />
             <Input
@@ -71,12 +114,25 @@ export default function Signup() {
               placeholder="8 caractères minimum"
               value={form.password}
               onChange={(e) => update("password", e.target.value)}
+              autoComplete="new-password"
+              minLength={8}
               required
             />
             <Button type="submit" fullWidth disabled={loading}>
               {loading ? "Création..." : "Créer mon compte"} {!loading && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
+
+          {GOOGLE_CLIENT_ID && (
+            <>
+              <div className="my-5 flex items-center gap-3">
+                <span className="h-px flex-1 bg-ink-100" />
+                <span className="text-xs font-medium text-ink-500">ou</span>
+                <span className="h-px flex-1 bg-ink-100" />
+              </div>
+              <div ref={googleBtnRef} className="flex justify-center" />
+            </>
+          )}
         </div>
 
         <p className="mt-6 text-center text-sm text-ink-500">

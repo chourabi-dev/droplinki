@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { User, Phone, Mail, Crown, Check } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { User, Phone, Mail, Crown, Check, Loader2 } from "lucide-react";
+import { useAuth, authErrorMessage } from "@/context/AuthContext";
 import { useDeliveries } from "@/context/DeliveryContext";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
@@ -13,6 +13,14 @@ export default function Profile() {
   const { showToast } = useToast();
   const [upgrading, setUpgrading] = useState(false);
 
+  if (!driver) {
+    return (
+      <div className="flex justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
+      </div>
+    );
+  }
+
   const now = new Date();
   const usedThisMonth = deliveries.filter((d) => {
     const dt = new Date(d.createdAt);
@@ -20,6 +28,18 @@ export default function Profile() {
   }).length;
 
   const usagePct = Math.min(100, Math.round((usedThisMonth / FREE_LIMIT) * 100));
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    try {
+      await upgradeToPro();
+      showToast("Bienvenue dans DropLink Pro 🎉", "success");
+    } catch (err) {
+      showToast(authErrorMessage(err), "warning");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -29,7 +49,11 @@ export default function Profile() {
       <div className="mt-6 rounded-2xl border border-ink-100 bg-white p-6 shadow-card">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-100 text-xl font-bold text-brand-700">
-            {driver.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+            {driver.name
+              .split(" ")
+              .map((n) => n[0])
+              .slice(0, 2)
+              .join("")}
           </div>
           <div>
             <p className="font-display text-lg font-semibold text-ink-900">{driver.name}</p>
@@ -97,19 +121,7 @@ export default function Profile() {
               </ul>
             </div>
 
-            <Button
-              fullWidth
-              className="mt-5"
-              disabled={upgrading}
-              onClick={() => {
-                setUpgrading(true);
-                setTimeout(() => {
-                  upgradeToPro();
-                  showToast("Bienvenue dans DropLink Pro 🎉", "success");
-                  setUpgrading(false);
-                }, 600);
-              }}
-            >
+            <Button fullWidth className="mt-5" disabled={upgrading} onClick={handleUpgrade}>
               {upgrading ? "Mise à niveau..." : "Passer à Pro"}
             </Button>
           </>

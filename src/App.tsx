@@ -7,6 +7,8 @@ import { AppLayout } from "@/components/AppLayout";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Deliveries from "@/pages/Deliveries";
 import DeliveryDetails from "@/pages/DeliveryDetails";
@@ -25,6 +27,8 @@ export default function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Public customer-facing tracking page — no auth required */}
               <Route path="/d/:deliveryId" element={<CustomerTracking />} />
