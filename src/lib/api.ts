@@ -2,7 +2,7 @@ import { Delivery, Driver } from "@/types";
 
 /**
  * Base URL of the Symfony backend. Configure with VITE_API_BASE_URL in .env.
- * Locally the Symfony backend runs on http://localhost:8000.
+ * Locally the Symfony backend runs on https://droplinki-backend.chourabi-e-business-solutions.com/.
  *
  * NOTE: as of this integration the Symfony backend does not implement these
  * routes yet. This client is written against the contract documented in
@@ -11,7 +11,7 @@ import { Delivery, Driver } from "@/types";
  * until those routes exist — callers must handle that gracefully (this app
  * surfaces it via toasts / inline error states rather than crashing).
  */
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://droplinki-backend.chourabi-e-business-solutions.com/").replace(/\/+$/, "");
 
 const TOKEN_KEY = "droplink:token";
 const USER_KEY = "droplink:user";
@@ -185,13 +185,13 @@ export const deliveriesApi = {
 
   // Public endpoints used by the customer-facing tracking page (no auth token required).
   getPublic: (id: string) =>
-    request<Delivery>(`/api/public/deliveries/${encodeURIComponent(id)}`, { method: "GET", auth: false }),
+    request<Delivery>(`/api/open/deliveries/${encodeURIComponent(id)}`, { method: "GET", auth: false }),
 
   markLinkOpened: (id: string) =>
-    request<void>(`/api/public/deliveries/${encodeURIComponent(id)}/opened`, { method: "POST", auth: false }),
+    request<void>(`/api/open/deliveries/${encodeURIComponent(id)}/opened`, { method: "POST", auth: false }),
 
   shareLocation: (id: string, latitude: number, longitude: number) =>
-    request<Delivery>(`/api/public/deliveries/${encodeURIComponent(id)}/location`, {
+    request<Delivery>(`/api/open/deliveries/${encodeURIComponent(id)}/location`, {
       method: "POST",
       body: { latitude, longitude },
       auth: false,

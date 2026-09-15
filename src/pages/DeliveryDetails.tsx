@@ -11,6 +11,7 @@ import {
   StickyNote,
   Phone,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { useDeliveries, deliveryErrorMessage } from "@/context/DeliveryContext";
 import { useToast } from "@/context/ToastContext";
@@ -19,12 +20,17 @@ import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
 import { distanceKm, estimateMinutes, formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
 import { Delivery } from "@/types";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 
 export default function DeliveryDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getDelivery, fetchDelivery, markDelivered } = useDeliveries();
   const { showToast } = useToast();
+  // The driver's real position must come from the browser's geolocation API
+  // (this device is the driver's device), never from the delivery's static
+  // driverLatitude/driverLongitude fields.
+  const { location: driverLocation, error: driverLocationError, loading: driverLocationLoading } = useLiveLocation();
   const [confirmDeliver, setConfirmDeliver] = useState(false);
   const [delivering, setDelivering] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,10 +83,13 @@ export default function DeliveryDetails() {
     );
   }
 
-  const hasLocation = delivery.customerLatitude !== undefined && delivery.customerLongitude !== undefined;
-  const distance = hasLocation
-    ? distanceKm(delivery.driverLatitude, delivery.driverLongitude, delivery.customerLatitude!, delivery.customerLongitude!)
-    : undefined;
+const hasLocation =
+  delivery.customerLatitude != null &&
+  delivery.customerLongitude != null;
+  const distance =
+    hasLocation && driverLocation
+      ? distanceKm(driverLocation.lat, driverLocation.lon, delivery.customerLatitude!, delivery.customerLongitude!)
+      : undefined;
   const eta = distance !== undefined ? estimateMinutes(distance) : undefined;
   const fullLink = `${window.location.origin}${delivery.shareUrl}`;
   const message = `🚚 Votre livraison est en route.\nOuvrez ce lien et partagez votre position avec votre livreur :\n${fullLink}`;
@@ -126,7 +135,7 @@ export default function DeliveryDetails() {
             <div className="h-72 sm:h-96">
               {hasLocation ? (
                 <MapView
-                  driver={{ lat: delivery.driverLatitude, lon: delivery.driverLongitude }}
+                  driver={driverLocation ?? undefined}
                   customer={{ lat: delivery.customerLatitude!, lon: delivery.customerLongitude! }}
                 />
               ) : (
@@ -150,13 +159,24 @@ export default function DeliveryDetails() {
 
           {hasLocation && (
             <div className="grid grid-cols-3 gap-3">
-              <StatBox label="Distance" value={`${distance!.toFixed(1)} km`} />
-              <StatBox label="Temps estimé" value={`${eta} min`} />
+              <StatBox label="Distance" value={distance !== undefined ? `${distance.toFixed(1)} km` : "—"} />
+              <StatBox label="Temps estimé" value={eta !== undefined ? `${eta} min` : "—"} />
               <StatBox
                 label="Coordonnées"
                 value={`${delivery.customerLatitude!.toFixed(4)}, ${delivery.customerLongitude!.toFixed(4)}`}
                 small
               />
+            </div>
+          )}
+
+          {hasLocation && !driverLocation && (
+            <div className="flex items-start gap-2 rounded-xl border border-warn-200 bg-warn-50 p-3 text-sm text-warn-700">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                {driverLocationLoading
+                  ? "Localisation de votre position en cours..."
+                  : driverLocationError || "Position indisponible. Autorisez la géolocalisation pour voir la distance et votre position sur la carte."}
+              </p>
             </div>
           )}
 

@@ -8,6 +8,8 @@ import { authApi } from "@/lib/api";
 import { authErrorMessage } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
+import logo from "@/assets/logo.png";
+
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 30;
 
@@ -111,10 +113,7 @@ export default function ResetPassword() {
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4 py-12">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <MapPin className="h-5 w-5" strokeWidth={2.5} />
-          </div>
-          <span className="font-display text-xl font-bold text-white">DropLink</span>
+          <img src={logo} width={200} />
         </Link>
 
         <div className="rounded-3xl border border-white/10 bg-ink-900 p-7 shadow-2xl sm:p-8">

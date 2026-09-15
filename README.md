@@ -35,7 +35,7 @@ ci-dessous pour la liste exacte des routes attendues.
 ## Installation et lancement
 
 Prérequis : Node.js 18+, npm, et le backend Symfony lancé sur
-`http://localhost:8000` (ou une autre URL — voir configuration ci-dessous).
+`https://droplinki-backend.chourabi-e-business-solutions.com/` (ou une autre URL — voir configuration ci-dessous).
 
 ```bash
 cp .env.example .env
@@ -61,7 +61,7 @@ npm run preview
 
 | Variable                  | Description                                                        | Défaut                  |
 |---------------------------|----------------------------------------------------------------------|--------------------------|
-| `VITE_API_BASE_URL`       | URL de base du backend Symfony                                       | `http://localhost:8000` |
+| `VITE_API_BASE_URL`       | URL de base du backend Symfony                                       | `https://droplinki-backend.chourabi-e-business-solutions.com/` |
 | `VITE_GOOGLE_CLIENT_ID`   | OAuth Client ID Google (Google Identity Services) pour le bouton Google Sign-In | *(vide — bouton masqué)* |
 
 Le Client ID Google se crée depuis la
@@ -142,7 +142,7 @@ nécessitent aucune authentification.
 ## Backend API contract
 
 Le frontend attend une API REST JSON sous `VITE_API_BASE_URL` (ex.
-`http://localhost:8000`). Toutes les routes authentifiées attendent un header
+`https://droplinki-backend.chourabi-e-business-solutions.com/`). Toutes les routes authentifiées attendent un header
 `Authorization: Bearer <token>`. Le contrat ci-dessous est ce que le client
 appelle aujourd'hui (`src/lib/api.ts`) — il sert de spécification pour
 l'implémentation Symfony.

@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 const driverIcon = L.divIcon({
   className: "",
@@ -49,11 +50,41 @@ function FitBounds({ driver, customer }: { driver?: { lat: number; lon: number }
   return null;
 }
 
+/**
+ * Leaflet measures its container's size only once, right when the map is
+ * created. If that container is 0x0 at that exact moment — e.g. it's inside
+ * a layout that hasn't finished a reflow yet, a tab/card that was just
+ * switched into view, or mounted a frame before its parent gets its final
+ * height — Leaflet renders an empty grey box with no tiles until something
+ * (like a manual window resize) forces it to remeasure. Explicitly calling
+ * invalidateSize() right after mount (and once more on the next frame, to be
+ * safe) fixes that without requiring the user to resize anything.
+ */
+function InvalidateSizeOnMount() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const raf = requestAnimationFrame(() => map.invalidateSize());
+    const timeout = setTimeout(() => map.invalidateSize(), 250);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timeout);
+    };
+  }, [map]);
+  return null;
+}
+
 export function MapView({ driver, customer, className, zoom = 14, interactive = true }: MapViewProps) {
   const center = customer || driver || { lat: 36.8065, lon: 10.1815 };
 
   return (
-    <div className={className}>
+    // h-full/w-full is required here, not just on the caller's wrapper: a
+    // percentage height on MapContainer below only resolves against a parent
+    // that itself has an explicit (non-auto) height. Without this, this div
+    // defaults to height:auto and Leaflet's 100%-height container collapses
+    // to 0px — an empty box with no tiles, even though the outer wrapper the
+    // page passes in (e.g. h-72/h-96) does have a real height.
+    <div className={cn("h-full w-full", className)}>
       <MapContainer
         center={[center.lat, center.lon]}
         zoom={zoom}
@@ -80,6 +111,7 @@ export function MapView({ driver, customer, className, zoom = 14, interactive = 
         {driver && <Marker position={[driver.lat, driver.lon]} icon={driverIcon} />}
         {customer && <Marker position={[customer.lat, customer.lon]} icon={customerIcon} />}
         <FitBounds driver={driver} customer={customer} />
+        <InvalidateSizeOnMount />
       </MapContainer>
     </div>
   );

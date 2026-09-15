@@ -13,7 +13,7 @@ export function PhoneMockup() {
               K
             </div>
             <div>
-              <p className="text-[13px] font-semibold leading-tight">Karim · DropLink</p>
+              <p className="text-[13px] font-semibold leading-tight">Taher chourabi · DropLinki</p>
               <p className="text-[10px] text-white/70">en ligne</p>
             </div>
           </div>

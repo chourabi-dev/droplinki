@@ -4,11 +4,17 @@ import { StatusBadge } from "./StatusBadge";
 import { formatDateTime, formatAmount, distanceKm } from "@/lib/utils";
 import { ChevronRight, MapPin, User } from "lucide-react";
 
-export function DeliveryCard({ delivery }: { delivery: Delivery }) {
+interface DeliveryCardProps {
+  delivery: Delivery;
+  /** Driver's live position (from navigator.geolocation), not the delivery's static driverLatitude/Longitude. */
+  driverLocation?: { lat: number; lon: number } | null;
+}
+
+export function DeliveryCard({ delivery, driverLocation }: DeliveryCardProps) {
   const navigate = useNavigate();
   const distance =
-    delivery.customerLatitude && delivery.customerLongitude
-      ? distanceKm(delivery.driverLatitude, delivery.driverLongitude, delivery.customerLatitude, delivery.customerLongitude)
+    driverLocation && delivery.customerLatitude && delivery.customerLongitude
+      ? distanceKm(driverLocation.lat, driverLocation.lon, delivery.customerLatitude, delivery.customerLongitude)
       : undefined;
 
   return (

@@ -3,6 +3,10 @@ import { MapPin, LayoutGrid, Package, User, Plus, LogOut, Menu, X } from "lucide
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.png";
+import cebs from "@/assets/cebs-dark.png";
+
+
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Tableau de bord", icon: LayoutGrid },
@@ -19,10 +23,8 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <MapPin className="h-4.5 w-4.5" strokeWidth={2.5} />
-          </div>
-          <span className="font-display text-lg font-bold text-ink-900">DropLink</span>
+           <img src={ logo } width={150} />
+           
         </button>
 
         <nav className="hidden items-center gap-1 md:flex">

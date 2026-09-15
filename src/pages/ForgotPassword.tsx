@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { authApi } from "@/lib/api";
 import { authErrorMessage } from "@/context/AuthContext";
-
+import logo from "@/assets/logo.png";
 // Deliberately distinct visual language from Login/Signup: a split hero panel
 // instead of a single centered card, with a step indicator instead of a form-only page.
 export default function ForgotPassword() {
@@ -36,10 +36,7 @@ export default function ForgotPassword() {
       <div className="relative hidden overflow-hidden bg-ink-950 lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(91,95,239,0.35),transparent_45%),radial-gradient(circle_at_80%_70%,rgba(67,56,234,0.3),transparent_45%)]" />
         <Link to="/" className="relative z-10 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <MapPin className="h-5 w-5" strokeWidth={2.5} />
-          </div>
-          <span className="font-display text-xl font-bold text-white">DropLink</span>
+            <img src={logo} width={200} />
         </Link>
 
         <div className="relative z-10">
@@ -55,7 +52,7 @@ export default function ForgotPassword() {
           <Stepper current={1} />
         </div>
 
-        <p className="relative z-10 text-xs text-ink-500">DropLink — livraisons simplifiées</p>
+        
       </div>
 
       {/* Right form panel */}

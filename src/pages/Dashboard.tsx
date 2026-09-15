@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { DeliveryCard } from "@/components/DeliveryCard";
 import { Button } from "@/components/ui/Button";
 import { distanceKm } from "@/lib/utils";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 
 function isToday(iso: string) {
   const d = new Date(iso);
@@ -15,13 +16,16 @@ function isToday(iso: string) {
 export default function Dashboard() {
   const { deliveries, isLoading, error } = useDeliveries();
   const { driver } = useAuth();
+  // The driver's real position comes from the browser's geolocation API, not
+  // from the delivery's static driverLatitude/driverLongitude fields.
+  const { location: driverLocation } = useLiveLocation();
 
   const todayDeliveries = deliveries.filter((d) => isToday(d.createdAt));
   const pending = deliveries.filter((d) => d.status === "waiting_location");
   const completed = deliveries.filter((d) => d.status === "delivered");
   const totalDistance = deliveries.reduce((sum, d) => {
-    if (d.customerLatitude && d.customerLongitude) {
-      return sum + distanceKm(d.driverLatitude, d.driverLongitude, d.customerLatitude, d.customerLongitude);
+    if (driverLocation && d.customerLatitude && d.customerLongitude) {
+      return sum + distanceKm(driverLocation.lat, driverLocation.lon, d.customerLatitude, d.customerLongitude);
     }
     return sum;
   }, 0);
@@ -82,7 +86,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-3">
             {recent.map((d) => (
-              <DeliveryCard key={d.id} delivery={d} />
+              <DeliveryCard key={d.id} delivery={d} driverLocation={driverLocation} />
             ))}
           </div>
         )}

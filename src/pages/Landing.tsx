@@ -13,6 +13,11 @@ import { PhoneMockup } from "@/components/PhoneMockup";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 
+import logo from "@/assets/logo.png";
+import cebs from "@/assets/cebs-dark.png";
+
+
+
 const FEATURES = [
   {
     icon: MapPin,
@@ -46,10 +51,9 @@ export default function Landing() {
       <header className="sticky top-0 z-40 border-b border-ink-100/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <MapPin className="h-4.5 w-4.5" strokeWidth={2.5} />
-            </div>
-            <span className="font-display text-lg font-bold text-ink-900">DropLink</span>
+            
+            <img src={ logo } width={150} />
+           
           </div>
           <nav className="hidden items-center gap-8 text-sm font-medium text-ink-700 md:flex">
             <a href="#how" className="hover:text-ink-900">Comment ça marche</a>
@@ -156,7 +160,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PRICING */}
+      {/* PRICING 
       <section id="pricing" className="border-t border-ink-100 bg-ink-50/60 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mb-12 max-w-xl">
@@ -202,7 +206,7 @@ export default function Landing() {
             </div>
           </div>
         </div>
-      </section>
+      </section>*/}
 
       {/* CTA */}
       <section className="py-16 sm:py-20">
@@ -220,10 +224,22 @@ export default function Landing() {
       <footer className="border-t border-ink-100 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-ink-500 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-brand-600" />
-            <span className="font-display font-semibold text-ink-900">DropLink</span>
-          </div>
-          <p>© 2026 DropLink.</p>
+            <img src={logo} width={200} />
+          </div> 
+
+
+            <div>
+              <p className="mt-6 text-center text-xs text-ink-400 m-auto">
+              All rights reserved | PowredBy
+            </p>
+            <p className=" text-center text-xs text-ink-400 m-auto">
+              <a href="https://www.chourabi-e-business-solutions.com/" target="_blank">
+                <img src={cebs} width={100} />
+              </a>
+            </p>
+            </div>
+
+
         </div>
       </footer>
     </div>

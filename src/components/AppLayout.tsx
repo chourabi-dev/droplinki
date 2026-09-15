@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { AppHeader } from "./AppHeader";
 import { MobileTabBar } from "./MobileTabBar";
 
+
 export function AppLayout() {
   const { isAuthenticated, isLoading, authCheckError, retryAuthCheck } = useAuth();
 

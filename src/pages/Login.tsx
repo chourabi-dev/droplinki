@@ -7,6 +7,10 @@ import { useAuth, authErrorMessage } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { GOOGLE_CLIENT_ID, renderGoogleButton } from "@/lib/googleAuth";
 
+import logo from "@/assets/logo.png";
+import cebs from "@/assets/cebs-dark.png";
+
+
 export default function Login() {
   const navigate = useNavigate();
   const { login, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -62,10 +66,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4 py-12">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <MapPin className="h-5 w-5" strokeWidth={2.5} />
-          </div>
-          <span className="font-display text-xl font-bold text-ink-900">DropLink</span>
+          <img src={logo} width={200} />
         </Link>
 
         <div className="rounded-2xl border border-ink-100 bg-white p-7 shadow-card sm:p-8">

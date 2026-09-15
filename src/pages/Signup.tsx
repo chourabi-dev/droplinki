@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { useAuth, authErrorMessage } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { GOOGLE_CLIENT_ID, renderGoogleButton } from "@/lib/googleAuth";
+import logo from "@/assets/logo.png";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -64,10 +65,7 @@ export default function Signup() {
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4 py-12">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <MapPin className="h-5 w-5" strokeWidth={2.5} />
-          </div>
-          <span className="font-display text-xl font-bold text-ink-900">DropLink</span>
+          <img src={logo} width={200} />
         </Link>
 
         <div className="rounded-2xl border border-ink-100 bg-white p-7 shadow-card sm:p-8">
@@ -84,7 +82,7 @@ export default function Signup() {
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <Input
               label="Nom complet"
-              placeholder="Karim Bouazizi"
+              placeholder="Nom livreur"
               value={form.name}
               onChange={(e) => update("name", e.target.value)}
               autoComplete="name"
@@ -93,7 +91,7 @@ export default function Signup() {
             <Input
               label="Téléphone"
               type="tel"
-              placeholder="+216 20 123 456"
+              placeholder="20 123 456"
               value={form.phone}
               onChange={(e) => update("phone", e.target.value)}
               autoComplete="tel"
