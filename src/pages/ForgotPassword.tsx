@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { MapPin, Mail, ShieldQuestion, ArrowLeft, CheckCircle2, RotateCcw, AlertCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { MapPin, ShieldQuestion, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { authApi } from "@/lib/api";
@@ -9,10 +9,10 @@ import { authErrorMessage } from "@/context/AuthContext";
 // Deliberately distinct visual language from Login/Signup: a split hero panel
 // instead of a single centered card, with a step indicator instead of a form-only page.
 export default function ForgotPassword() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +20,9 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       await authApi.forgotPassword(email);
-      setSent(true);
+      // The backend just emailed a 6-digit code — send the user straight to
+      // the verification screen, carrying the email along in the query string.
+      navigate(`/reset-password?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
@@ -46,11 +48,11 @@ export default function ForgotPassword() {
           </div>
           <h2 className="font-display text-3xl font-bold text-white">Ça arrive à tout le monde.</h2>
           <p className="mt-3 max-w-sm text-sm text-ink-300">
-            Indiquez votre email et nous vous enverrons un lien sécurisé pour choisir un nouveau mot de passe en
+            Indiquez votre email et nous vous enverrons un code à 6 chiffres pour choisir un nouveau mot de passe en
             quelques secondes.
           </p>
 
-          <Stepper current={sent ? 2 : 1} />
+          <Stepper current={1} />
         </div>
 
         <p className="relative z-10 text-xs text-ink-500">DropLink — livraisons simplifiées</p>
@@ -66,84 +68,52 @@ export default function ForgotPassword() {
             <span className="font-display text-xl font-bold text-ink-900">DropLink</span>
           </Link>
 
-          {!sent ? (
-            <>
-              <Link
-                to="/login"
-                className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-900"
-              >
-                <ArrowLeft className="h-4 w-4" /> Retour à la connexion
-              </Link>
+          <Link
+            to="/login"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 hover:text-ink-900"
+          >
+            <ArrowLeft className="h-4 w-4" /> Retour à la connexion
+          </Link>
 
-              <h1 className="font-display text-2xl font-bold text-ink-950">Mot de passe oublié</h1>
-              <p className="mt-1.5 text-sm text-ink-500">
-                Saisissez l'adresse email associée à votre compte DropLink.
-              </p>
+          <h1 className="font-display text-2xl font-bold text-ink-950">Mot de passe oublié</h1>
+          <p className="mt-1.5 text-sm text-ink-500">
+            Saisissez l'adresse email associée à votre compte DropLink, nous vous enverrons un code de
+            vérification à 6 chiffres.
+          </p>
 
-              {error && (
-                <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                <Input
-                  label="Email"
-                  type="email"
-                  placeholder="vous@exemple.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoFocus
-                  required
-                />
-                <Button type="submit" fullWidth disabled={loading}>
-                  {loading ? "Envoi..." : "Envoyer le lien de réinitialisation"}
-                </Button>
-              </form>
-            </>
-          ) : (
-            <div className="text-center">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-go-50 text-go-500 animate-check-pop">
-                <Mail className="h-8 w-8" strokeWidth={2} />
-              </div>
-              <h1 className="font-display text-2xl font-bold text-ink-950">Vérifiez votre boîte mail</h1>
-              <p className="mt-2 text-sm text-ink-500">
-                Si un compte existe pour <span className="font-semibold text-ink-900">{email}</span>, un lien de
-                réinitialisation vient de lui être envoyé. Pensez à vérifier vos spams.
-              </p>
-
-              <div className="mt-6 flex flex-col gap-3">
-                <Button
-                  variant="outline"
-                  fullWidth
-                  onClick={() => {
-                    setSent(false);
-                    setError(null);
-                  }}
-                >
-                  <RotateCcw className="h-4 w-4" /> Utiliser une autre adresse
-                </Button>
-                <Link to="/login">
-                  <Button variant="ghost" fullWidth>
-                    Retour à la connexion
-                  </Button>
-                </Link>
-              </div>
+          {error && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{error}</p>
             </div>
           )}
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <Input
+              label="Email"
+              type="email"
+              placeholder="vous@exemple.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              required
+            />
+            <Button type="submit" fullWidth disabled={loading}>
+              {loading ? "Envoi..." : "Envoyer le code"}
+            </Button>
+          </form>
         </div>
       </div>
     </div>
   );
 }
 
-function Stepper({ current }: { current: 1 | 2 }) {
-  const steps = ["Demander le lien", "Choisir un mot de passe"];
+function Stepper({ current }: { current: 1 | 2 | 3 }) {
+  const steps = ["Demander un code", "Vérifier le code", "Choisir un mot de passe"];
   return (
     <ol className="relative z-10 mt-8 space-y-4">
       {steps.map((label, i) => {
-        const step = (i + 1) as 1 | 2;
+        const step = (i + 1) as 1 | 2 | 3;
         const active = step === current;
         const done = step < current;
         return (

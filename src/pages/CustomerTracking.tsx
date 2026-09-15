@@ -5,6 +5,9 @@ import { deliveriesApi, ApiError } from "@/lib/api";
 import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
 import { Delivery } from "@/types";
+import logo from "@/assets/logo.png";
+import cebs from "@/assets/cebs-dark.png";
+
 
 type ShareState = "loading" | "not_found" | "idle" | "locating" | "denied" | "shared";
 
@@ -90,10 +93,7 @@ export default function CustomerTracking() {
     <div className="min-h-screen bg-ink-50">
       <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 py-8">
         <div className="mb-8 flex items-center justify-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <MapPin className="h-4.5 w-4.5" strokeWidth={2.5} />
-          </div>
-          <span className="font-display text-lg font-bold text-ink-900">DropLink</span>
+           <img src={logo} width={250} />
         </div>
 
         <div className="flex-1 rounded-3xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
@@ -111,16 +111,18 @@ export default function CustomerTracking() {
                 </div>
               </div>
 
-              <dl className="mt-5 space-y-2.5 text-sm">
+              {
+                /**<dl className="mt-5 space-y-2.5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-ink-500">Livraison de</dt>
                   <dd className="font-medium text-ink-900">Livreur DropLink</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-ink-500">Commande</dt>
-                  <dd className="font-medium text-ink-900">#{delivery.id}</dd>
+                  <dd className="font-medium text-ink-900">#{delivery.reference}</dd>
                 </div>
-              </dl>
+              </dl> */
+              }
 
               <div className="mt-8 flex flex-col items-center text-center">
                 <button
@@ -161,7 +163,14 @@ export default function CustomerTracking() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-xs text-ink-400">Propulsé par DropLink — aucune application requise</p>
+        <p className="mt-6 text-center text-xs text-ink-400 m-auto">
+           All rights reserved | PowredBy
+        </p>
+        <p className=" text-center text-xs text-ink-400 m-auto">
+           <a href="https://www.chourabi-e-business-solutions.com/" target="_blank">
+            <img src={cebs} width={100} />
+           </a>
+        </p>
       </div>
     </div>
   );

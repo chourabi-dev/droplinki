@@ -1,49 +1,105 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { MapPin, KeyRound, CheckCircle2, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { MapPin, KeyRound, MailCheck, CheckCircle2, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { OtpInput } from "@/components/ui/OtpInput";
 import { authApi } from "@/lib/api";
 import { authErrorMessage } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
+const CODE_LENGTH = 6;
+const RESEND_COOLDOWN = 30;
+
+type Step = "code" | "password" | "done";
+
 // Deliberately distinct visual language from Login/Signup/ForgotPassword:
-// a centered dark "security" card with a live password-strength meter and
-// a redirect countdown on success, instead of a plain form.
+// a centered dark "security" card. Two steps live on this one screen — enter
+// the 6-digit code emailed by /forgot-password, then pick a new password —
+// followed by a redirect countdown on success, instead of a plain form.
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get("token") || "";
+  const email = searchParams.get("email") || "";
 
+  const [step, setStep] = useState<Step>("code");
+
+  // Step 1: code verification
+  const [code, setCode] = useState("");
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+  // Step 2: new password
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+
+  // Step 3: success
   const [countdown, setCountdown] = useState(5);
 
   const strength = useMemo(() => passwordStrength(password), [password]);
   const mismatch = confirm.length > 0 && password !== confirm;
 
   useEffect(() => {
-    if (!done) return;
+    if (step !== "done") return;
     if (countdown === 0) {
       navigate("/login");
       return;
     }
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
-  }, [done, countdown, navigate]);
+  }, [step, countdown, navigate]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    if (resendCooldown === 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (code.length < CODE_LENGTH) return;
+    setCodeError(null);
+    setCodeLoading(true);
+    try {
+      await authApi.verifyResetCode({ email, code });
+      setStep("password");
+    } catch (err) {
+      setCodeError(authErrorMessage(err));
+    } finally {
+      setCodeLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setResendMessage(null);
+    setCodeError(null);
+    setResendLoading(true);
+    try {
+      await authApi.forgotPassword(email);
+      setCode("");
+      setResendMessage("Un nouveau code vient d'être envoyé.");
+      setResendCooldown(RESEND_COOLDOWN);
+    } catch (err) {
+      setCodeError(authErrorMessage(err));
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault();
     if (mismatch || password.length < 8) return;
     setError(null);
     setLoading(true);
     try {
-      await authApi.resetPassword({ token, password });
-      setDone(true);
+      await authApi.resetPassword({ email, code, password });
+      setStep("done");
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
@@ -62,23 +118,73 @@ export default function ResetPassword() {
         </Link>
 
         <div className="rounded-3xl border border-white/10 bg-ink-900 p-7 shadow-2xl sm:p-8">
-          {done ? (
+          {!email ? (
             <div className="text-center">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-go-500/15 text-go-500 animate-check-pop">
-                <CheckCircle2 className="h-8 w-8" strokeWidth={2} />
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-warn-500/15 text-warn-500">
+                <AlertCircle className="h-8 w-8" strokeWidth={2} />
               </div>
-              <h1 className="font-display text-2xl font-bold text-white">Mot de passe mis à jour</h1>
+              <h1 className="font-display text-2xl font-bold text-white">Lien invalide</h1>
               <p className="mt-2 text-sm text-ink-300">
-                Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+                Il manque l'adresse email associée à cette demande. Redemandez un code depuis la page de
+                connexion.
               </p>
-              <p className="mt-4 text-xs text-ink-500">Redirection vers la connexion dans {countdown}s...</p>
-              <Link to="/login" className="mt-6 block">
-                <Button fullWidth>
-                  Aller à la connexion <ArrowRight className="h-4 w-4" />
-                </Button>
+              <Link to="/forgot-password" className="mt-6 block">
+                <Button fullWidth>Demander un code</Button>
               </Link>
             </div>
-          ) : (
+          ) : step === "code" ? (
+            <>
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/15 text-brand-400">
+                <MailCheck className="h-7 w-7" strokeWidth={2} />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-white">Entrez le code reçu</h1>
+              <p className="mt-1.5 text-sm text-ink-300">
+                Nous avons envoyé un code à 6 chiffres à{" "}
+                <span className="font-semibold text-white">{email}</span>. Il expire au bout de quelques minutes.
+              </p>
+
+              {codeError && (
+                <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{codeError}</p>
+                </div>
+              )}
+              {resendMessage && !codeError && (
+                <div className="mt-4 flex items-start gap-2 rounded-xl border border-go-500/30 bg-go-500/10 p-3 text-sm text-go-500">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{resendMessage}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleVerifyCode} className="mt-6 space-y-5">
+                <OtpInput
+                  value={code}
+                  onChange={setCode}
+                  length={CODE_LENGTH}
+                  disabled={codeLoading}
+                  error={!!codeError}
+                  autoFocus
+                />
+
+                <Button type="submit" fullWidth disabled={codeLoading || code.length < CODE_LENGTH}>
+                  {codeLoading ? "Vérification..." : "Vérifier le code"}
+                </Button>
+              </form>
+
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendLoading || resendCooldown > 0}
+                className="mt-4 w-full text-center text-sm font-medium text-brand-400 hover:text-brand-300 disabled:cursor-not-allowed disabled:text-ink-500"
+              >
+                {resendCooldown > 0
+                  ? `Renvoyer le code (${resendCooldown}s)`
+                  : resendLoading
+                  ? "Envoi..."
+                  : "Vous n'avez rien reçu ? Renvoyer le code"}
+              </button>
+            </>
+          ) : step === "password" ? (
             <>
               <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/15 text-brand-400">
                 <KeyRound className="h-7 w-7" strokeWidth={2} />
@@ -88,13 +194,6 @@ export default function ResetPassword() {
                 Doit contenir au moins 8 caractères. Choisissez quelque chose que vous n'utilisez pas ailleurs.
               </p>
 
-              {!token && (
-                <div className="mt-4 flex items-start gap-2 rounded-xl border border-warn-500/30 bg-warn-500/10 p-3 text-sm text-warn-500">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>Lien de réinitialisation invalide ou incomplet. Redemandez un lien depuis la page de connexion.</p>
-                </div>
-              )}
-
               {error && (
                 <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -102,7 +201,7 @@ export default function ResetPassword() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <form onSubmit={handleResetPassword} className="mt-6 space-y-4">
                 <div className="relative">
                   <Input
                     label="Nouveau mot de passe"
@@ -137,11 +236,35 @@ export default function ResetPassword() {
                 />
                 {mismatch && <p className="-mt-2 text-xs text-red-400">Les mots de passe ne correspondent pas.</p>}
 
-                <Button type="submit" fullWidth disabled={loading || mismatch || password.length < 8 || !token}>
+                <Button type="submit" fullWidth disabled={loading || mismatch || password.length < 8}>
                   {loading ? "Mise à jour..." : "Réinitialiser le mot de passe"}
                 </Button>
               </form>
+
+              <button
+                type="button"
+                onClick={() => setStep("code")}
+                className="mt-4 w-full text-center text-sm font-medium text-ink-400 hover:text-white"
+              >
+                Revenir à la saisie du code
+              </button>
             </>
+          ) : (
+            <div className="text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-go-500/15 text-go-500 animate-check-pop">
+                <CheckCircle2 className="h-8 w-8" strokeWidth={2} />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-white">Mot de passe mis à jour</h1>
+              <p className="mt-2 text-sm text-ink-300">
+                Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+              </p>
+              <p className="mt-4 text-xs text-ink-500">Redirection vers la connexion dans {countdown}s...</p>
+              <Link to="/login" className="mt-6 block">
+                <Button fullWidth>
+                  Aller à la connexion <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
 

@@ -147,10 +147,16 @@ export const authApi = {
 
   me: () => request<Driver>("/api/auth/me", { method: "GET" }),
 
+  /** Step 1: triggers a 6-digit code sent by email to the account (if it exists). */
   forgotPassword: (email: string) =>
     request<{ message: string }>("/api/auth/forgot-password", { method: "POST", body: { email }, auth: false }),
 
-  resetPassword: (input: { token: string; password: string }) =>
+  /** Step 2: verifies the 6-digit code the user received, before letting them pick a new password. */
+  verifyResetCode: (input: { email: string; code: string }) =>
+    request<{ message: string }>("/api/auth/verify-reset-code", { method: "POST", body: input, auth: false }),
+
+  /** Step 3: sets the new password. Re-sends the code so the backend can re-validate it atomically. */
+  resetPassword: (input: { email: string; code: string; password: string }) =>
     request<{ message: string }>("/api/auth/reset-password", { method: "POST", body: input, auth: false }),
 };
 

@@ -46,7 +46,9 @@ export default function CreateDelivery() {
   }
 
   if (created) {
-    const fullLink = `${window.location.origin}${created.shareUrl}`;
+    console.log(created,"oh shit babdy");
+    
+    const fullLink = `${window.location.origin}/d/${created.id}`;
     const message = `🚚 Votre livraison est en route.\nOuvrez ce lien et partagez votre position avec votre livreur :\n${fullLink}`;
 
     return (
