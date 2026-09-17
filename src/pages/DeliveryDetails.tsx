@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/Button";
 import { distanceKm, estimateMinutes, formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
 import { Delivery } from "@/types";
 import { useLiveLocation } from "@/hooks/useLiveLocation";
+import pusher from "pusher-js";
+import Pusher from "pusher-js";
 
 export default function DeliveryDetails() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +40,49 @@ export default function DeliveryDetails() {
 
   const cached = id ? getDelivery(id) : undefined;
   const [delivery, setDelivery] = useState<Delivery | undefined>(cached);
+
+
+
+  
+
+  useEffect(() => {
+    // we need to subscribe to this delevery id
+
+    const pusher = new Pusher(
+        "e43e09207961f9d8d94e",
+        {
+            cluster: "ap2",
+            forceTLS: true,
+        }
+    );
+    const deliveryChannelID = `delivery-${id}`
+    const channel = pusher.subscribe(deliveryChannelID);
+
+    channel.bind("NEW-LOCATION", (data:any) => {
+        console.log("NEW DELIVERY:", data);
+
+        if ( id != null ){
+            setLoading(true);
+          fetchDelivery(id)
+          .then((d) => {
+             setDelivery(d);
+          })
+          .catch(() => {
+             setNotFound(true);
+          })
+          .finally(() => {
+             setLoading(false);
+          });
+        }
+        
+        
+    });
+
+  }, []);
+
+
+
+
 
   useEffect(() => {
     setDelivery(cached);

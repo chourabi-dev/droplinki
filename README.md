@@ -63,6 +63,8 @@ npm run preview
 |---------------------------|----------------------------------------------------------------------|--------------------------|
 | `VITE_API_BASE_URL`       | URL de base du backend Symfony                                       | `https://droplinki-backend.chourabi-e-business-solutions.com/` |
 | `VITE_GOOGLE_CLIENT_ID`   | OAuth Client ID Google (Google Identity Services) pour le bouton Google Sign-In | *(vide — bouton masqué)* |
+| `VITE_PUSHER_KEY`         | Clé d'app Pusher Channels (temps réel)                                | *(vide — temps réel désactivé)* |
+| `VITE_PUSHER_CLUSTER`     | Cluster Pusher (ex. `eu`, `mt1`)                                      | *(vide — temps réel désactivé)* |
 
 Le Client ID Google se crée depuis la
 [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
@@ -204,6 +206,57 @@ fourni (pas de liste, pas d'énumération).
 Toute réponse non-2xx doit être un JSON `{ message: string }` (le frontend
 l'affiche directement à l'utilisateur). En l'absence de JSON, le frontend
 affiche un message générique `Erreur serveur (<status>)`.
+
+---
+
+## Temps réel (Pusher Channels)
+
+La liste des livraisons (`/deliveries`) et le détail d'une livraison
+(`/deliveries/:id`, avec sa carte) se mettent à jour **automatiquement**,
+sans rechargement ni polling, dès que le client :
+
+- ouvre le lien de suivi (`/d/:deliveryId`) ;
+- partage sa position ;
+- (et la livraison passe "livrée").
+
+Le frontend est déjà entièrement câblé côté client
+(`src/lib/pusher.ts` + `src/context/DeliveryContext.tsx`) : il se connecte à
+Pusher avec `VITE_PUSHER_KEY` / `VITE_PUSHER_CLUSTER` et s'abonne, pour le
+livreur connecté, au **canal privé** :
+
+```
+private-driver-{driverId}
+```
+
+Il écoute l'événement **`delivery.updated`**, dont le payload attendu est
+l'objet `Delivery` complet et à jour (même forme que les réponses REST
+ci-dessus). Le frontend fusionne ce payload dans son état local, ce qui
+rafraîchit à la fois la liste et la page de détail (elles partagent le même
+contexte).
+
+**Ce qui reste à faire côté Symfony :**
+
+1. **Broadcaster `delivery.updated`** sur `private-driver-{driverId}` (via le
+   SDK serveur Pusher, ex. `pusher/pusher-http-php`) à chaque fois que l'une
+   des livraisons de ce livreur change, en particulier après :
+   - `POST /api/open/deliveries/{id}/opened`
+   - `POST /api/open/deliveries/{id}/location`
+   - `PATCH /api/deliveries/{id}/delivered`
+
+2. **Exposer une route d'authentification des canaux privés :**
+
+   | Méthode | Route              | Auth | Payload                              | Réponse                    |
+   |---------|---------------------|------|-----------------------------------------|------------------------------|
+   | POST    | `/api/pusher/auth` | oui  | `socket_id`, `channel_name` (form-encoded, envoyés par Pusher.js) | réponse signée du SDK serveur Pusher |
+
+   Cette route doit vérifier le token `Authorization: Bearer`, s'assurer que
+   `channel_name` correspond bien à `private-driver-{id du livreur
+   authentifié}` (jamais celui d'un autre livreur), puis renvoyer la réponse
+   générée par `Pusher::authorizeChannel($channel_name, $socket_id)`.
+
+Si `VITE_PUSHER_KEY` / `VITE_PUSHER_CLUSTER` ne sont pas renseignées, le
+temps réel est simplement désactivé (aucune erreur) et l'app se comporte
+comme avant (rafraîchissement manuel / au chargement de la page).
 
 ---
 

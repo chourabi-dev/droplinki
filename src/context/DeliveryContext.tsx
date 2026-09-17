@@ -2,7 +2,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState, useCall
 import { Delivery } from "@/types";
 import { deliveriesApi, CreateDeliveryInput, ApiError, isNetworkError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-
+import Pusher from "pusher-js";
+ 
 interface DeliveryContextValue {
   deliveries: Delivery[];
   isLoading: boolean;
@@ -17,10 +18,50 @@ interface DeliveryContextValue {
 const DeliveryContext = createContext<DeliveryContextValue | undefined>(undefined);
 
 export function DeliveryProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, driver } = useAuth();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /** Merges a delivery received in real time (Pusher) into local state. */
+  const mergeDelivery = useCallback((delivery: Delivery) => {
+    setDeliveries((prev) => {
+      const exists = prev.some((d) => d.id === delivery.id);
+      return exists ? prev.map((d) => (d.id === delivery.id ? delivery : d)) : [delivery, ...prev];
+    });
+  }, []);
+
+  // Realtime updates: as soon as the customer opens the tracking link or
+  // shares their position, the backend broadcasts the updated delivery on
+  // the driver's private Pusher channel. Both the deliveries list and the
+  // delivery details page read from this same context, so merging here
+  // auto-refreshes both UIs without any polling.
+
+   useEffect(() => {
+      if(driver != null){
+          // we need to subscribe to this delevery id
+    
+        const pusher = new Pusher (
+            "e43e09207961f9d8d94e",
+            {
+                cluster: "ap2",
+                forceTLS: true,
+            }
+        );
+        const driverChannelID = `driver-${driver.email}`
+ 
+        const channel = pusher.subscribe(driverChannelID);
+    
+        channel.bind("DELIVERIES-UPDATES", (data:any) => {
+            
+          refresh();
+            
+        });
+    
+      
+      
+      }
+    },[]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -46,14 +87,14 @@ export function DeliveryProvider({ children }: { children: React.ReactNode }) {
 
   const getDelivery = useCallback((id: string) => deliveries.find((d) => d.id === id), [deliveries]);
 
-  const fetchDelivery = useCallback(async (id: string) => {
-    const delivery = await deliveriesApi.get(id);
-    setDeliveries((prev) => {
-      const exists = prev.some((d) => d.id === delivery.id);
-      return exists ? prev.map((d) => (d.id === delivery.id ? delivery : d)) : [delivery, ...prev];
-    });
-    return delivery;
-  }, []);
+  const fetchDelivery = useCallback(
+    async (id: string) => {
+      const delivery = await deliveriesApi.get(id);
+      mergeDelivery(delivery);
+      return delivery;
+    },
+    [mergeDelivery]
+  );
 
   const createDelivery = useCallback(async (input: CreateDeliveryInput) => {
     const delivery = await deliveriesApi.create(input);

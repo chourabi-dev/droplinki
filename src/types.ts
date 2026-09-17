@@ -40,6 +40,7 @@ export interface Driver {
   phone?: string;
   email: string;
   plan: "free" | "pro";
+  emailVerified: boolean 
 }
 
 export const STATUS_LABELS: Record<DeliveryStatus, string> = {

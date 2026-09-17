@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { Driver } from "@/types";
 import { authApi, driverApi, getToken, setToken, getStoredUser, setStoredUser, ApiError, isNetworkError } from "@/lib/api";
+ 
 
 interface AuthContextValue {
   isAuthenticated: boolean;
@@ -101,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setStoredUser(null);
     setDriver(null);
+     
   }, []);
 
   const upgradeToPro = useCallback(async () => {

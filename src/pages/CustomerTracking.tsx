@@ -111,18 +111,29 @@ export default function CustomerTracking() {
                 </div>
               </div>
 
-              {
-                /**<dl className="mt-5 space-y-2.5 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-ink-500">Livraison de</dt>
-                  <dd className="font-medium text-ink-900">Livreur DropLink</dd>
-                </div>
+              
+                <dl className="mt-5 space-y-2.5 text-sm">
+                
                 <div className="flex justify-between">
                   <dt className="text-ink-500">Commande</dt>
-                  <dd className="font-medium text-ink-900">#{delivery.reference}</dd>
+                  <dd className="font-medium text-ink-900">#{delivery.id}</dd>
                 </div>
-              </dl> */
-              }
+                <div className="flex justify-between">
+                  <dt className="text-ink-500">Notes</dt>
+                  <dd className="font-medium text-ink-900">{delivery.notes}</dd>
+                </div>
+                
+                {
+                 delivery.amount != 0 ?  <div className="flex justify-between">
+                  <dt className="text-ink-500">À payer</dt>
+                    <dd className="font-medium text-ink-900">{delivery.amount}DT</dd>
+                  </div> : null
+                }
+                
+
+                
+              </dl> 
+              
 
               <div className="mt-8 flex flex-col items-center text-center">
                 <button
