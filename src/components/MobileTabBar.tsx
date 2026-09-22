@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutGrid, Package, Plus, User } from "lucide-react";
+import { LayoutGrid, Package, Plus, User, Map as MapIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MobileTabBar() {
@@ -15,7 +15,7 @@ export function MobileTabBar() {
           <Plus className="h-6 w-6" />
         </NavLink>
         <TabLink to="/profile" icon={User} label="Profil" />
-        <div className="w-8" />
+        <TabLink to="/map" icon={MapIcon} label="Carte" />
       </div>
     </nav>
   );

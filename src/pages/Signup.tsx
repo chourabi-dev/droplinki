@@ -15,6 +15,7 @@ export default function Signup() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,6 +50,10 @@ export default function Signup() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!agreed) {
+      setError("Vous devez accepter les conditions d'utilisation et la politique de confidentialité pour continuer.");
+      return;
+    }
     setLoading(true);
     try {
       await signup(form);
@@ -116,7 +121,30 @@ export default function Signup() {
               minLength={8}
               required
             />
-            <Button type="submit" fullWidth disabled={loading}>
+
+            <label htmlFor="accept-terms" className="flex cursor-pointer items-start gap-2.5 text-sm text-ink-600">
+              <input
+                id="accept-terms"
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-ink-300 text-brand-600 focus:ring-2 focus:ring-brand-500/30"
+              />
+              <span>
+                J'ai lu et j'accepte les{" "}
+                <Link to="/terms-of-use" target="_blank" className="font-semibold text-brand-600 hover:text-brand-700">
+                  Conditions d'utilisation
+                </Link>{" "}
+                et la{" "}
+                <Link to="/privacy-policy" target="_blank" className="font-semibold text-brand-600 hover:text-brand-700">
+                  Politique de confidentialité
+                </Link>
+                .
+              </span>
+            </label>
+
+            <Button type="submit" fullWidth disabled={loading || !agreed}>
               {loading ? "Création..." : "Créer mon compte"} {!loading && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
@@ -128,7 +156,19 @@ export default function Signup() {
                 <span className="text-xs font-medium text-ink-500">ou</span>
                 <span className="h-px flex-1 bg-ink-100" />
               </div>
-              <div ref={googleBtnRef} className="flex justify-center" />
+              <div className="relative flex justify-center">
+                <div ref={googleBtnRef} />
+                {!agreed && (
+                  <button
+                    type="button"
+                    aria-label="Acceptez les conditions d'utilisation et la politique de confidentialité pour continuer"
+                    onClick={() =>
+                      setError("Vous devez accepter les conditions d'utilisation et la politique de confidentialité pour continuer.")
+                    }
+                    className="absolute inset-0 cursor-not-allowed rounded-xl bg-white/70"
+                  />
+                )}
+              </div>
             </>
           )}
         </div>

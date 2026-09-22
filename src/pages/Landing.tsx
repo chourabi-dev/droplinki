@@ -225,8 +225,12 @@ export default function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-ink-500 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2">
             <img src={logo} width={200} />
-          </div> 
+          </div>
 
+          <nav className="flex items-center gap-5 text-xs font-medium text-ink-500">
+            <Link to="/privacy-policy" className="hover:text-ink-900">Politique de confidentialité</Link>
+            <Link to="/terms-of-use" className="hover:text-ink-900">Conditions d'utilisation</Link>
+          </nav>
 
             <div>
               <p className="mt-6 text-center text-xs text-ink-400 m-auto">

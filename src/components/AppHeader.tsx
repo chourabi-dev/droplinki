@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { MapPin, LayoutGrid, Package, User, Plus, LogOut, Menu, X } from "lucide-react";
+import { MapPin, LayoutGrid, Package, User, Plus, LogOut, Menu, X, Map as MapIcon } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import cebs from "@/assets/cebs-dark.png";
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Tableau de bord", icon: LayoutGrid },
   { to: "/deliveries", label: "Livraisons", icon: Package },
+  { to: "/map", label: "Carte", icon: MapIcon },
   { to: "/profile", label: "Profil", icon: User },
 ];
 
