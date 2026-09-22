@@ -37,7 +37,7 @@ export default function Profile() {
       const token = localStorage.getItem("droplink:token");
 
       const response = await fetch(
-        `https://droplinki-backend.chourabi-e-business-solutions.com/api/verify-email`,
+        `https://api.droplinki.com/api/verify-email`,
         {
           method: "POST",
           headers: {
