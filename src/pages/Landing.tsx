@@ -61,6 +61,12 @@ export default function Landing() {
             <a href="#pricing" className="hover:text-ink-900">Tarifs</a>
           </nav>
           <div className="flex items-center gap-2">
+            <Link
+              to="/company"
+              className="hidden rounded-full border border-ink-200 px-3.5 py-1.5 text-xs font-semibold text-ink-600 hover:border-ink-300 hover:text-ink-900 md:block"
+            >
+              Espace entreprise
+            </Link>
             {isAuthenticated ? (
               <Link to="/dashboard">
                 <Button size="sm">Tableau de bord</Button>

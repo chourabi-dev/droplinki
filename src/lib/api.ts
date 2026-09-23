@@ -11,7 +11,7 @@ import { Delivery, Driver } from "@/types";
  * until those routes exist — callers must handle that gracefully (this app
  * surfaces it via toasts / inline error states rather than crashing).
  */
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.droplinki.com/").replace(/\/+$/, "");
+const API_BASE_URL = ("http://localhost:8000/").replace(/\/+$/, "");
 
 const TOKEN_KEY = "droplink:token";
 const USER_KEY = "droplink:user";

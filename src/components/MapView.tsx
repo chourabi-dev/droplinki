@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,17 @@ interface MapViewProps {
   className?: string;
   zoom?: number;
   interactive?: boolean;
+  /** When provided, clicking the map calls this with the clicked coordinates — used by the company "pin location from a phone call" flow. */
+  onPick?: (lat: number, lon: number) => void;
+}
+
+function ClickToPick({ onPick }: { onPick: (lat: number, lon: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onPick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
 }
 
 function FitBounds({ driver, customer }: { driver?: { lat: number; lon: number }; customer?: { lat: number; lon: number } }) {
@@ -74,7 +85,7 @@ function InvalidateSizeOnMount() {
   return null;
 }
 
-export function MapView({ driver, customer, className, zoom = 14, interactive = true }: MapViewProps) {
+export function MapView({ driver, customer, className, zoom = 14, interactive = true, onPick }: MapViewProps) {
   const center = customer || driver || { lat: 36.8065, lon: 10.1815 };
 
   return (
@@ -112,6 +123,7 @@ export function MapView({ driver, customer, className, zoom = 14, interactive = 
         {customer && <Marker position={[customer.lat, customer.lon]} icon={customerIcon} />}
         <FitBounds driver={driver} customer={customer} />
         <InvalidateSizeOnMount />
+        {onPick && <ClickToPick onPick={onPick} />}
       </MapContainer>
     </div>
   );
