@@ -6,7 +6,7 @@ import { useCompanyDrivers } from "@/context/CompanyDriverContext";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime, formatAmount, cn } from "@/lib/utils";
-import { DeliveryStatus, STATUS_LABELS } from "@/types";
+import { DeliveryStatus, STATUS_LABELS, companyDriverFullName } from "@/types";
 
 type FilterKey = "all" | "unassigned" | DeliveryStatus;
 
@@ -18,7 +18,10 @@ export default function CompanyDeliveries() {
   const [filter, setFilter] = useState<FilterKey>((searchParams.get("filter") as FilterKey) || "all");
   const [query, setQuery] = useState("");
 
-  const driverName = (id?: string) => (id ? drivers.find((d) => d.id === id)?.name : undefined);
+  const driverName = (id?: string) => {
+    const driver = id ? drivers.find((d) => d.id === id) : undefined;
+    return driver ? companyDriverFullName(driver) : undefined;
+  };
 
   const filtered = useMemo(() => {
     let list = deliveries;

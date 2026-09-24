@@ -13,6 +13,7 @@ import {
   Plus,
   WifiOff,
   Building2,
+  MapPinned,
 } from "lucide-react";
 import { useCompanyAuth } from "@/context/CompanyAuthContext";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { to: "/company/dashboard", label: "Tableau de bord", icon: LayoutGrid, end: true },
   { to: "/company/deliveries", label: "Livraisons", icon: Package },
   { to: "/company/drivers", label: "Livreurs", icon: Users },
+  { to: "/company/delivery-zones", label: "Zones de livraison", icon: MapPinned },
   { to: "/company/stats", label: "Statistiques", icon: BarChart3 },
   { to: "/company/settings", label: "Paramètres", icon: Settings },
 ];

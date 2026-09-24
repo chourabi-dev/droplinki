@@ -5,6 +5,10 @@ import {
   CompanyStats,
   CallOutcome,
   CsvImportRow,
+  Governorate,
+  Delegation,
+  DeliveryZone,
+  VehicleType,
 } from "@/types";
 import { ApiError, isNetworkError } from "@/lib/api";
 
@@ -148,14 +152,76 @@ export const companyAuthApi = {
 };
 
 // ---------------------------------------------------------------------------
+// Geography — /api/company/geo (read-only, seeded server-side)
+// ---------------------------------------------------------------------------
+// Governorates and delegations are seeded in the database and never
+// created/edited from the frontend. Delegations are always fetched scoped to
+// a governorate, matching the cascading picker in the UI (governorate →
+// delegation → delivery zone).
+
+export const companyGeoApi = {
+  governorates: () => request<Governorate[]>("/api/company/geo/governorates", { method: "GET" }),
+
+  delegations: (governorateId: string) =>
+    request<Delegation[]>(
+      `/api/company/geo/governorates/${encodeURIComponent(governorateId)}/delegations`,
+      { method: "GET" }
+    ),
+};
+
+// ---------------------------------------------------------------------------
+// Delivery zones — /api/company/delivery-zones
+// ---------------------------------------------------------------------------
+// Each zone belongs to a company and is tied to exactly one delegation
+// (picked via the governorate → delegation cascade above).
+
+export interface CreateDeliveryZoneInput {
+  name: string;
+  nameAr: string;
+  description?: string;
+  isActive: boolean;
+  delegationId: string;
+}
+
+export const companyDeliveryZonesApi = {
+  list: () => request<DeliveryZone[]>("/api/company/delivery-zones", { method: "GET" }),
+
+  create: (input: CreateDeliveryZoneInput) =>
+    request<DeliveryZone>("/api/company/delivery-zones", { method: "POST", body: input }),
+
+  update: (id: string, input: Partial<CreateDeliveryZoneInput>) =>
+    request<DeliveryZone>(`/api/company/delivery-zones/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: input,
+    }),
+
+  remove: (id: string) =>
+    request<void>(`/api/company/delivery-zones/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+// ---------------------------------------------------------------------------
 // Drivers roster — /api/company/drivers
 // ---------------------------------------------------------------------------
 
 export interface CreateCompanyDriverInput {
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
+  cin: string;
   email?: string;
-  vehicleType?: string;
+  password?: string;
+  address?: string;
+  vehicleType: VehicleType;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  plateNumber?: string;
+  drivingLicenseNumber?: string;
+  deliveryZoneIds?: string[];
+  /**
+   * When true (requires `email` + `password` to be set), the backend sends
+   * the driver their account credentials by email after creation.
+   */
+  sendCredentialsEmail?: boolean;
 }
 
 export const companyDriversApi = {

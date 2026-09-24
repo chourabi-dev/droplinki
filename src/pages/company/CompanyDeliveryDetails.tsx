@@ -24,7 +24,7 @@ import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
-import { CompanyDelivery, CALL_OUTCOME_LABELS, CallOutcome } from "@/types";
+import { CompanyDelivery, CALL_OUTCOME_LABELS, CallOutcome, companyDriverFullName } from "@/types";
 
 const OUTCOME_ORDER: CallOutcome[] = ["location_confirmed", "answered_no_location", "no_answer", "wrong_number"];
 
@@ -158,7 +158,7 @@ export default function CompanyDeliveryDetails() {
           {hasLocation && (
             <div className="grid grid-cols-2 gap-3">
               <StatBox label="Coordonnées" value={`${delivery.customerLatitude!.toFixed(4)}, ${delivery.customerLongitude!.toFixed(4)}`} small />
-              <StatBox label="Livreur assigné" value={assignedDriver?.name || "Aucun"} small />
+              <StatBox label="Livreur assigné" value={assignedDriver ? companyDriverFullName(assignedDriver) : "Aucun"} small />
             </div>
           )}
 
@@ -256,7 +256,7 @@ export default function CompanyDeliveryDetails() {
               <option value="">Non assigné</option>
               {drivers.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name}
+                  {companyDriverFullName(d)}
                 </option>
               ))}
             </select>

@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Plus, Loader2, AlertCircle, Users, Phone, Mail, Car, X, MoreVertical, Trash2 } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Users, Phone, Mail, Car, X, MoreVertical, Trash2, BadgeCheck, MapPin } from "lucide-react";
 import { useCompanyDrivers, companyErrorMessage } from "@/context/CompanyDriverContext";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
+import { useCompanyDeliveryZones } from "@/context/CompanyDeliveryZoneContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { useToast } from "@/context/ToastContext";
 import { formatDateTime } from "@/lib/utils";
-import { CompanyDriver } from "@/types";
+import { CompanyDriver, VehicleType, VEHICLE_TYPE_LABELS, companyDriverFullName } from "@/types";
+import { CreateCompanyDriverInput } from "@/lib/companyApi";
+import { DeliveryZonePicker } from "@/components/company/DeliveryZonePicker";
 
 const STATUS_LABELS: Record<CompanyDriver["status"], string> = {
   active: "Actif",
@@ -23,11 +26,13 @@ const STATUS_TINTS: Record<CompanyDriver["status"], string> = {
 export default function CompanyDrivers() {
   const { drivers, isLoading, error, addDriver, updateDriver, removeDriver } = useCompanyDrivers();
   const { deliveries } = useCompanyDeliveries();
+  const { zones } = useCompanyDeliveryZones();
   const { showToast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const activeCount = (driverId: string) => deliveries.filter((d) => d.assignedDriverId === driverId && d.status !== "delivered").length;
+  const zoneNames = (ids: string[]) => zones.filter((z) => ids.includes(z.id)).map((z) => z.name);
 
   async function handleStatusChange(id: string, status: CompanyDriver["status"]) {
     try {
@@ -125,7 +130,7 @@ export default function CompanyDrivers() {
                   </div>
                 </div>
 
-                <p className="mt-3 font-display font-semibold text-ink-900">{d.name}</p>
+                <p className="mt-3 font-display font-semibold text-ink-900">{companyDriverFullName(d)}</p>
                 <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_TINTS[d.status]}`}>
                   {STATUS_LABELS[d.status]}
                 </span>
@@ -139,9 +144,18 @@ export default function CompanyDrivers() {
                       <Mail className="h-3.5 w-3.5" /> {d.email}
                     </p>
                   )}
-                  {d.vehicleType && (
-                    <p className="flex items-center gap-1.5">
-                      <Car className="h-3.5 w-3.5" /> {d.vehicleType}
+                  <p className="flex items-center gap-1.5">
+                    <BadgeCheck className="h-3.5 w-3.5" /> CIN {d.cin}
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <Car className="h-3.5 w-3.5" /> {VEHICLE_TYPE_LABELS[d.vehicleType]}
+                    {d.vehicleBrand ? ` · ${d.vehicleBrand}` : ""}
+                    {d.plateNumber ? ` · ${d.plateNumber}` : ""}
+                  </p>
+                  {d.deliveryZoneIds?.length > 0 && (
+                    <p className="flex items-start gap-1.5">
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{zoneNames(d.deliveryZoneIds).join(", ") || `${d.deliveryZoneIds.length} zone(s)`}</span>
                     </p>
                   )}
                 </div>
@@ -159,32 +173,87 @@ export default function CompanyDrivers() {
   );
 }
 
+const VEHICLE_TYPES = Object.keys(VEHICLE_TYPE_LABELS) as VehicleType[];
+
+interface DriverFormState {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  cin: string;
+  email: string;
+  password: string;
+  address: string;
+  vehicleType: VehicleType | "";
+  vehicleBrand: string;
+  vehicleModel: string;
+  plateNumber: string;
+  drivingLicenseNumber: string;
+  deliveryZoneIds: string[];
+  sendCredentialsEmail: boolean;
+}
+
+const EMPTY_FORM: DriverFormState = {
+  firstName: "",
+  lastName: "",
+  phone: "",
+  cin: "",
+  email: "",
+  password: "",
+  address: "",
+  vehicleType: "",
+  vehicleBrand: "",
+  vehicleModel: "",
+  plateNumber: "",
+  drivingLicenseNumber: "",
+  deliveryZoneIds: [],
+  sendCredentialsEmail: false,
+};
+
 function AddDriverForm({
   onClose,
   onCreate,
 }: {
   onClose: () => void;
-  onCreate: (input: { name: string; phone: string; email?: string; vehicleType?: string }) => Promise<CompanyDriver>;
+  onCreate: (input: CreateCompanyDriverInput) => Promise<CompanyDriver>;
 }) {
   const { showToast } = useToast();
-  const [form, setForm] = useState({ name: "", phone: "", email: "", vehicleType: "" });
+  const [form, setForm] = useState<DriverFormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function update(key: keyof typeof form, value: string) {
+  function update<K extends keyof DriverFormState>(key: K, value: DriverFormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  const canSendCredentials = !!form.email.trim() && !!form.password.trim();
+  const requiredFilled = form.firstName.trim() && form.lastName.trim() && form.phone.trim() && form.cin.trim() && form.vehicleType;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (form.sendCredentialsEmail && !canSendCredentials) {
+      setError("Renseignez l'email et le mot de passe du livreur pour lui envoyer ses identifiants par email.");
+      return;
+    }
+
     setLoading(true);
     try {
       await onCreate({
-        name: form.name,
-        phone: form.phone,
-        email: form.email || undefined,
-        vehicleType: form.vehicleType || undefined,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        phone: form.phone.trim(),
+        cin: form.cin.trim(),
+        email: form.email.trim() || undefined,
+        password: form.password || undefined,
+        address: form.address.trim() || undefined,
+        vehicleType: form.vehicleType as VehicleType,
+        vehicleBrand: form.vehicleBrand.trim() || undefined,
+        vehicleModel: form.vehicleModel.trim() || undefined,
+        plateNumber: form.plateNumber.trim() || undefined,
+        drivingLicenseNumber: form.drivingLicenseNumber.trim() || undefined,
+        deliveryZoneIds: form.deliveryZoneIds.length ? form.deliveryZoneIds : undefined,
+        sendCredentialsEmail: form.sendCredentialsEmail && canSendCredentials,
       });
       showToast("Livreur ajouté", "success");
       onClose();
@@ -212,13 +281,89 @@ function AddDriverForm({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input label="Nom complet" placeholder="Ex. Karim Trabelsi" value={form.name} onChange={(e) => update("name", e.target.value)} required />
-          <Input label="Téléphone" type="tel" placeholder="+216 20 123 456" value={form.phone} onChange={(e) => update("phone", e.target.value)} required />
-          <Input label="Email (optionnel)" type="email" placeholder="livreur@exemple.com" value={form.email} onChange={(e) => update("email", e.target.value)} />
-          <Input label="Véhicule (optionnel)" placeholder="Ex. Moto, Camionnette" value={form.vehicleType} onChange={(e) => update("vehicleType", e.target.value)} />
-          <div className="flex gap-2 sm:col-span-2">
-            <Button type="submit" disabled={loading}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Identité */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Identité</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input label="Prénom" placeholder="Karim" value={form.firstName} onChange={(e) => update("firstName", e.target.value)} required autoFocus />
+              <Input label="Nom" placeholder="Trabelsi" value={form.lastName} onChange={(e) => update("lastName", e.target.value)} required />
+              <Input label="Téléphone" type="tel" placeholder="+216 20 123 456" value={form.phone} onChange={(e) => update("phone", e.target.value)} required />
+              <Input label="Numéro CIN" placeholder="12345678" value={form.cin} onChange={(e) => update("cin", e.target.value)} required />
+              <Input label="Adresse (optionnel)" placeholder="Rue, ville" value={form.address} onChange={(e) => update("address", e.target.value)} className="sm:col-span-2" />
+            </div>
+          </section>
+
+          {/* Compte livreur */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Compte (optionnel)</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input label="Email" type="email" placeholder="livreur@exemple.com" value={form.email} onChange={(e) => update("email", e.target.value)} />
+              <Input
+                label="Mot de passe"
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={(e) => update("password", e.target.value)}
+              />
+            </div>
+            <label className={`mt-3 flex items-start gap-2 text-sm ${canSendCredentials ? "text-ink-700" : "text-ink-400"}`}>
+              <input
+                type="checkbox"
+                disabled={!canSendCredentials}
+                checked={form.sendCredentialsEmail}
+                onChange={(e) => update("sendCredentialsEmail", e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500 disabled:opacity-50"
+              />
+              <span>
+                Envoyer les identifiants de connexion (email + mot de passe) au livreur par email.
+                {!canSendCredentials && <span className="block text-xs">Renseignez l'email et le mot de passe pour activer cette option.</span>}
+              </span>
+            </label>
+          </section>
+
+          {/* Véhicule */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Véhicule</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="w-full">
+                <label className="mb-1.5 block text-sm font-medium text-ink-700">
+                  Type de véhicule <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={form.vehicleType}
+                  onChange={(e) => update("vehicleType", e.target.value as VehicleType)}
+                  required
+                  className="w-full rounded-xl border border-ink-300 bg-white px-4 py-3 text-[15px] text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10"
+                >
+                  <option value="">Sélectionner un type</option>
+                  {VEHICLE_TYPES.map((v) => (
+                    <option key={v} value={v}>
+                      {VEHICLE_TYPE_LABELS[v]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Input label="Marque (optionnel)" placeholder="Ex. Yamaha" value={form.vehicleBrand} onChange={(e) => update("vehicleBrand", e.target.value)} />
+              <Input label="Modèle (optionnel)" placeholder="Ex. Crypton" value={form.vehicleModel} onChange={(e) => update("vehicleModel", e.target.value)} />
+              <Input label="Numéro de plaque (optionnel)" placeholder="123 TU 4567" value={form.plateNumber} onChange={(e) => update("plateNumber", e.target.value)} />
+              <Input
+                label="Numéro de permis de conduire (optionnel)"
+                placeholder="Ex. 987654"
+                value={form.drivingLicenseNumber}
+                onChange={(e) => update("drivingLicenseNumber", e.target.value)}
+              />
+            </div>
+          </section>
+
+          {/* Zones de livraison */}
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Zones de livraison</h3>
+            <DeliveryZonePicker selectedZoneIds={form.deliveryZoneIds} onChange={(ids) => update("deliveryZoneIds", ids)} />
+          </section>
+
+          <div className="flex gap-2 border-t border-ink-100 pt-5">
+            <Button type="submit" disabled={!requiredFilled || loading}>
               {loading ? "Ajout..." : "Ajouter le livreur"}
             </Button>
             <Button type="button" variant="ghost" onClick={onClose}>

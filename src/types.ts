@@ -77,17 +77,82 @@ export interface Company {
   emailVerified: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Geography — governorates & delegations (Tunisia). Seeded server-side and
+// fetched read-only by the company dashboard; never created/edited from the
+// frontend. A delivery zone always belongs to exactly one delegation, which
+// itself belongs to exactly one governorate.
+// ---------------------------------------------------------------------------
+
+export interface Governorate {
+  id: string;
+  name: string;
+  nameAr?: string;
+}
+
+export interface Delegation {
+  id: string;
+  name: string;
+  nameAr?: string;
+  governorateId: string;
+}
+
+/**
+ * A company-defined delivery zone. Tied to a single delegation (and, through
+ * it, a single governorate) so drivers and deliveries can be scoped to the
+ * areas the company actually serves.
+ */
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  nameAr: string;
+  description?: string;
+  isActive: boolean;
+  delegationId: string;
+  /** Optionally embedded by the API so the UI doesn't need a second round-trip. */
+  delegation?: Delegation;
+  governorateId?: string;
+  createdAt: string;
+}
+
+export type VehicleType = "moto" | "voiture" | "camionnette" | "velo" | "tricycle" | "camion";
+
+export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
+  moto: "Moto",
+  voiture: "Voiture",
+  camionnette: "Camionnette",
+  velo: "Vélo",
+  tricycle: "Tricycle",
+  camion: "Camion",
+};
+
 /** A driver that belongs to a company's roster (managed from the company dashboard). */
 export interface CompanyDriver {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
+  /** Numéro de la carte d'identité nationale (CIN). Obligatoire. */
+  cin: string;
   email?: string;
-  vehicleType?: string;
+  address?: string;
+  vehicleType: VehicleType;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  plateNumber?: string;
+  drivingLicenseNumber?: string;
+  /** Zones de livraison couvertes par ce livreur. */
+  deliveryZoneIds: string[];
+  /** Optionally embedded by the API so the UI doesn't need a second round-trip. */
+  deliveryZones?: DeliveryZone[];
   status: "active" | "invited" | "inactive";
   activeDeliveries?: number;
   completedDeliveries?: number;
   createdAt: string;
+}
+
+export function companyDriverFullName(d: Pick<CompanyDriver, "firstName" | "lastName">): string {
+  return `${d.firstName} ${d.lastName}`.trim();
 }
 
 export type CallOutcome = "no_answer" | "answered_no_location" | "location_confirmed" | "wrong_number";

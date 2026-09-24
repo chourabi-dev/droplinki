@@ -29,12 +29,15 @@ import NotFound from "@/pages/NotFound";
 import { CompanyAuthProvider } from "@/context/CompanyAuthContext";
 import { CompanyDriverProvider } from "@/context/CompanyDriverContext";
 import { CompanyDeliveryProvider } from "@/context/CompanyDeliveryContext";
+import { CompanyGeoProvider } from "@/context/CompanyGeoContext";
+import { CompanyDeliveryZoneProvider } from "@/context/CompanyDeliveryZoneContext";
 import { CompanyLayout } from "@/components/company/CompanyLayout";
 import CompanyLanding from "@/pages/company/CompanyLanding";
 import CompanyLogin from "@/pages/company/CompanyLogin";
 import CompanySignup from "@/pages/company/CompanySignup";
 import CompanyDashboard from "@/pages/company/CompanyDashboard";
 import CompanyDrivers from "@/pages/company/CompanyDrivers";
+import CompanyDeliveryZones from "@/pages/company/CompanyDeliveryZones";
 import CompanyDeliveries from "@/pages/company/CompanyDeliveries";
 import CompanyDeliveryDetails from "@/pages/company/CompanyDeliveryDetails";
 import CompanyCreateDelivery from "@/pages/company/CompanyCreateDelivery";
@@ -47,53 +50,58 @@ export default function App() {
     <AuthProvider>
       <DeliveryProvider>
         <CompanyAuthProvider>
-          <CompanyDriverProvider>
-            <CompanyDeliveryProvider>
-              <ToastProvider>
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/terms-of-use" element={<TermsOfUse />} />
-                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <CompanyGeoProvider>
+            <CompanyDeliveryZoneProvider>
+              <CompanyDriverProvider>
+                <CompanyDeliveryProvider>
+                  <ToastProvider>
+                    <BrowserRouter>
+                      <Routes>
+                        <Route path="/" element={<Landing />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/signup" element={<Signup />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/terms-of-use" element={<TermsOfUse />} />
+                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-                    {/* Public customer-facing tracking page — no auth required */}
-                    <Route path="/d/:deliveryId" element={<CustomerTracking />} />
+                        {/* Public customer-facing tracking page — no auth required */}
+                        <Route path="/d/:deliveryId" element={<CustomerTracking />} />
 
-                    {/* Authenticated driver app */}
-                    <Route element={<AppLayout />}>
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/deliveries" element={<Deliveries />} />
-                      <Route path="/deliveries/:id" element={<DeliveryDetails />} />
-                      <Route path="/create-delivery" element={<CreateDelivery />} />
-                      <Route path="/map" element={<DeliveriesMap />} />
-                      <Route path="/profile" element={<Profile />} />
-                    </Route>
+                        {/* Authenticated driver app */}
+                        <Route element={<AppLayout />}>
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/deliveries" element={<Deliveries />} />
+                          <Route path="/deliveries/:id" element={<DeliveryDetails />} />
+                          <Route path="/create-delivery" element={<CreateDelivery />} />
+                          <Route path="/map" element={<DeliveriesMap />} />
+                          <Route path="/profile" element={<Profile />} />
+                        </Route>
 
-                    {/* Company / Pro app — own URL namespace, own auth, own layout */}
-                    <Route path="/company" element={<CompanyLanding />} />
-                    <Route path="/company/login" element={<CompanyLogin />} />
-                    <Route path="/company/signup" element={<CompanySignup />} />
-                    <Route element={<CompanyLayout />}>
-                      <Route path="/company/dashboard" element={<CompanyDashboard />} />
-                      <Route path="/company/drivers" element={<CompanyDrivers />} />
-                      <Route path="/company/deliveries" element={<CompanyDeliveries />} />
-                      <Route path="/company/deliveries/new" element={<CompanyCreateDelivery />} />
-                      <Route path="/company/deliveries/import" element={<CompanyImportDeliveries />} />
-                      <Route path="/company/deliveries/:id" element={<CompanyDeliveryDetails />} />
-                      <Route path="/company/stats" element={<CompanyStats />} />
-                      <Route path="/company/settings" element={<CompanySettings />} />
-                    </Route>
+                        {/* Company / Pro app — own URL namespace, own auth, own layout */}
+                        <Route path="/company" element={<CompanyLanding />} />
+                        <Route path="/company/login" element={<CompanyLogin />} />
+                        <Route path="/company/signup" element={<CompanySignup />} />
+                        <Route element={<CompanyLayout />}>
+                          <Route path="/company/dashboard" element={<CompanyDashboard />} />
+                          <Route path="/company/drivers" element={<CompanyDrivers />} />
+                          <Route path="/company/delivery-zones" element={<CompanyDeliveryZones />} />
+                          <Route path="/company/deliveries" element={<CompanyDeliveries />} />
+                          <Route path="/company/deliveries/new" element={<CompanyCreateDelivery />} />
+                          <Route path="/company/deliveries/import" element={<CompanyImportDeliveries />} />
+                          <Route path="/company/deliveries/:id" element={<CompanyDeliveryDetails />} />
+                          <Route path="/company/stats" element={<CompanyStats />} />
+                          <Route path="/company/settings" element={<CompanySettings />} />
+                        </Route>
 
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </ToastProvider>
-            </CompanyDeliveryProvider>
-          </CompanyDriverProvider>
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </BrowserRouter>
+                  </ToastProvider>
+                </CompanyDeliveryProvider>
+              </CompanyDriverProvider>
+            </CompanyDeliveryZoneProvider>
+          </CompanyGeoProvider>
         </CompanyAuthProvider>
       </DeliveryProvider>
     </AuthProvider>

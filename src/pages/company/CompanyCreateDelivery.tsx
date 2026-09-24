@@ -7,7 +7,7 @@ import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
 import { companyErrorMessage } from "@/context/CompanyDriverContext";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
 import { useToast } from "@/context/ToastContext";
-import { CompanyDelivery } from "@/types";
+import { CompanyDelivery, companyDriverFullName } from "@/types";
 import { whatsappUrl } from "@/lib/utils";
 
 export default function CompanyCreateDelivery() {
@@ -168,7 +168,7 @@ export default function CompanyCreateDelivery() {
             <option value="">Non assigné pour l'instant</option>
             {drivers.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.name}
+                {companyDriverFullName(d)}
               </option>
             ))}
           </select>
