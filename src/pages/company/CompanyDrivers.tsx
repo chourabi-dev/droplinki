@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Loader2, AlertCircle, Users, Phone, Mail, Car, X, MoreVertical, Trash2, BadgeCheck, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Loader2, AlertCircle, Users, Car, X, MoreVertical, Trash2, BadgeCheck, MapPin, ChevronRight, Eye } from "lucide-react";
 import { useCompanyDrivers, companyErrorMessage } from "@/context/CompanyDriverContext";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
 import { useCompanyDeliveryZones } from "@/context/CompanyDeliveryZoneContext";
@@ -7,7 +8,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { useToast } from "@/context/ToastContext";
-import { formatDateTime } from "@/lib/utils";
 import { CompanyDriver, VehicleType, VEHICLE_TYPE_LABELS, companyDriverFullName } from "@/types";
 import { CreateCompanyDriverInput } from "@/lib/companyApi";
 
@@ -27,6 +27,7 @@ export default function CompanyDrivers() {
   const { deliveries } = useCompanyDeliveries();
   const { zones } = useCompanyDeliveryZones();
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
@@ -91,81 +92,80 @@ export default function CompanyDrivers() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {drivers.map((d) => (
-            <Card key={d.id} className="relative">
-              <CardContent>
-                <div className="flex items-start justify-between">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div className="relative">
-                    <button
-                      className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-50"
-                      onClick={() => setOpenMenuId(openMenuId === d.id ? null : d.id)}
-                      aria-label="Options"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                    {openMenuId === d.id && (
-                      <div className="absolute right-0 top-9 z-10 w-48 rounded-xl border border-ink-100 bg-white p-1.5 shadow-lift">
-                        {(["active", "inactive"] as const).map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => handleStatusChange(d.id, s)}
-                            className="block w-full rounded-lg px-3 py-2 text-left text-sm text-ink-700 hover:bg-ink-50"
-                          >
-                            Marquer {STATUS_LABELS[s].toLowerCase()}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => handleRemove(d.id)}
-                          className="flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Supprimer
-                        </button>
+        <div className="overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-ink-100 bg-ink-50 text-xs uppercase tracking-wide text-ink-500">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Livreur</th>
+                <th className="hidden px-4 py-3 font-semibold sm:table-cell">Téléphone</th>
+                <th className="hidden px-4 py-3 font-semibold md:table-cell">Véhicule</th>
+                <th className="hidden px-4 py-3 font-semibold lg:table-cell">Zones</th>
+                <th className="hidden px-4 py-3 font-semibold sm:table-cell">En cours</th>
+                <th className="px-4 py-3 font-semibold">Statut</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-100">
+              {drivers.map((d) => (
+                <tr
+                  key={d.id}
+                  className="cursor-pointer hover:bg-ink-50"
+                  onClick={() => navigate(`/company/drivers/${d.id}`)}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                        <Users className="h-4.5 w-4.5" />
                       </div>
+                      <div>
+                        <p className="font-medium text-ink-900">{companyDriverFullName(d)}</p>
+                        <p className="flex items-center gap-1 text-xs text-ink-500">
+                          <BadgeCheck className="h-3 w-3" /> CIN {d.cin}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="hidden px-4 py-3 text-ink-600 sm:table-cell">{d.phone}</td>
+                  <td className="hidden px-4 py-3 text-ink-600 md:table-cell">
+                    <span className="flex items-center gap-1.5">
+                      <Car className="h-3.5 w-3.5 text-ink-400" /> {VEHICLE_TYPE_LABELS[d.vehicleType]}
+                      {d.plateNumber ? ` · ${d.plateNumber}` : ""}
+                    </span>
+                  </td>
+                  <td className="hidden px-4 py-3 text-ink-600 lg:table-cell">
+                    {d.deliveryZoneIds?.length > 0 ? (
+                      <span className="flex items-start gap-1.5">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-400" />
+                        <span className="line-clamp-1">{zoneNames(d.deliveryZoneIds).join(", ") || `${d.deliveryZoneIds.length} zone(s)`}</span>
+                      </span>
+                    ) : (
+                      <span className="text-ink-400">Aucune</span>
                     )}
-                  </div>
-                </div>
-
-                <p className="mt-3 font-display font-semibold text-ink-900">{companyDriverFullName(d)}</p>
-                <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_TINTS[d.status]}`}>
-                  {STATUS_LABELS[d.status]}
-                </span>
-
-                <div className="mt-3 space-y-1.5 text-sm text-ink-500">
-                  <p className="flex items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5" /> {d.phone}
-                  </p>
-                  {d.email && (
-                    <p className="flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5" /> {d.email}
-                    </p>
-                  )}
-                  <p className="flex items-center gap-1.5">
-                    <BadgeCheck className="h-3.5 w-3.5" /> CIN {d.cin}
-                  </p>
-                  <p className="flex items-center gap-1.5">
-                    <Car className="h-3.5 w-3.5" /> {VEHICLE_TYPE_LABELS[d.vehicleType]}
-                    {d.vehicleBrand ? ` · ${d.vehicleBrand}` : ""}
-                    {d.plateNumber ? ` · ${d.plateNumber}` : ""}
-                  </p>
-                  {d.deliveryZoneIds?.length > 0 && (
-                    <p className="flex items-start gap-1.5">
-                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span>{zoneNames(d.deliveryZoneIds).join(", ") || `${d.deliveryZoneIds.length} zone(s)`}</span>
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-4 flex items-center justify-between border-t border-ink-100 pt-3 text-xs text-ink-500">
-                  <span>{activeCount(d.id)} livraison(s) en cours</span>
-                  <span>Depuis {(d.createdAt)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </td>
+                  <td className="hidden px-4 py-3 text-ink-500 sm:table-cell">{activeCount(d.id)} livraison(s)</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_TINTS[d.status]}`}>
+                      {STATUS_LABELS[d.status]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => navigate(`/company/drivers/${d.id}`)}
+                        className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-100 hover:text-brand-600"
+                        aria-label="Voir le profil"
+                        title="Voir le profil"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      
+                      <ChevronRight className="h-4 w-4 text-ink-300" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
