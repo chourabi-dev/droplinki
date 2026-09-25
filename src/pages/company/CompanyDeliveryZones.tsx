@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Plus, Loader2, AlertCircle, MapPinned, MapPin, X, ChevronRight, Check, MoreVertical, Trash2, Pencil } from "lucide-react";
+import { Plus, Loader2, AlertCircle, MapPinned, MapPin, X, Check, MoreVertical, Trash2, Pencil } from "lucide-react";
 import { useCompanyDeliveryZones, companyZoneErrorMessage } from "@/context/CompanyDeliveryZoneContext";
-import { useCompanyGeo, companyGeoErrorMessage } from "@/context/CompanyGeoContext";
+import { useCompanyGeo } from "@/context/CompanyGeoContext";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -17,23 +17,44 @@ export default function CompanyDeliveryZones() {
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  function governorateName(zone: DeliveryZone): string | undefined {
-    if (zone.governorateId) return governorates.find((g) => g.id === zone.governorateId)?.name;
-    // Fall back to looking the delegation up in whichever governorate's delegations we've already cached.
-    for (const g of governorates) {
-      const delegations = getDelegations(g.id);
-      if (delegations?.some((d) => d.id === zone.delegationId)) return g.name;
+  /** Best-effort delegation lookup: prefer the API's embedded `delegations`,
+   * otherwise fall back to whichever governorate's delegations we've already
+   * cached (from browsing the picker elsewhere in the session). */
+  function resolveDelegations(zone: DeliveryZone): { delegation: Delegation; governorateName?: string }[] {
+    if (zone.delegations && zone.delegations.length > 0) {
+      return zone.delegations.map((d) => ({
+        delegation: d,
+        governorateName: governorates.find((g) => g.id === d.governorateId)?.name,
+      }));
     }
-    return undefined;
+    const resolved: { delegation: Delegation; governorateName?: string }[] = [];
+    for (const id of zone.delegationIds) {
+      let found: { delegation: Delegation; governorateName?: string } | undefined;
+      for (const g of governorates) {
+        const match = getDelegations(g.id)?.find((d) => d.id === id);
+        if (match) {
+          found = { delegation: match, governorateName: g.name };
+          break;
+        }
+      }
+      resolved.push(found ?? { delegation: { id, name: id, governorateId: "" } });
+    }
+    return resolved;
   }
 
-  function delegationName(zone: DeliveryZone): string {
-    if (zone.delegation) return zone.delegation.name;
-    for (const g of governorates) {
-      const match = getDelegations(g.id)?.find((d) => d.id === zone.delegationId);
-      if (match) return match.name;
+  /** Groups a zone's delegations by governorate for compact display, e.g.
+   * "Tunis : Carthage, La Marsa · Ben Arous : Hammam Lif, Boumhel". */
+  function groupedCoverageLabel(zone: DeliveryZone): string {
+    const resolved = resolveDelegations(zone);
+    const byGovernorate = new Map<string, string[]>();
+    for (const { delegation, governorateName } of resolved) {
+      const key = governorateName ?? "Autre";
+      if (!byGovernorate.has(key)) byGovernorate.set(key, []);
+      byGovernorate.get(key)!.push(delegation.name);
     }
-    return zone.delegationId;
+    return Array.from(byGovernorate.entries())
+      .map(([gov, delegs]) => `${gov} : ${delegs.join(", ")}`)
+      .join(" · ");
   }
 
   async function handleRemove(id: string) {
@@ -63,7 +84,9 @@ export default function CompanyDeliveryZones() {
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink-950 sm:text-3xl">Zones de livraison</h1>
-          <p className="mt-1 text-ink-500">Gérez les zones couvertes par votre entreprise, par gouvernorat et délégation.</p>
+          <p className="mt-1 text-ink-500">
+            Regroupez une ou plusieurs délégations (d'un ou plusieurs gouvernorats) dans chaque zone couverte par votre entreprise.
+          </p>
         </div>
         <Button
           onClick={() => {
@@ -104,7 +127,7 @@ export default function CompanyDeliveryZones() {
           </div>
           <p className="font-display font-semibold text-ink-900">Aucune zone de livraison pour l'instant</p>
           <p className="mt-1 max-w-xs text-sm text-ink-500">
-            Créez vos zones (par gouvernorat et délégation) pour pouvoir y rattacher vos livreurs.
+            Créez vos zones en regroupant une ou plusieurs délégations pour pouvoir y rattacher vos livreurs.
           </p>
           <Button size="sm" className="mt-5" onClick={() => setShowForm(true)}>
             <Plus className="h-4 w-4" /> Nouvelle zone
@@ -169,10 +192,11 @@ export default function CompanyDeliveryZones() {
                 {z.description && <p className="mt-2 text-sm text-ink-500">{z.description}</p>}
 
                 <div className="mt-4 border-t border-ink-100 pt-3 text-xs text-ink-500">
-                  <p>
-                    {delegationName(z)}
-                    {governorateName(z) ? `, ${governorateName(z)}` : ""}
+                  <p className="font-medium text-ink-600">
+                    {z.delegationIds.length} délégation{z.delegationIds.length > 1 ? "s" : ""} couverte
+                    {z.delegationIds.length > 1 ? "s" : ""}
                   </p>
+                  <p className="mt-0.5">{groupedCoverageLabel(z)}</p>
                 </div>
               </CardContent>
             </Card>
@@ -183,7 +207,15 @@ export default function CompanyDeliveryZones() {
   );
 }
 
-type WizardStep = "governorate" | "delegation" | "details";
+/** A delegation pick accumulated while composing/editing a zone, tagged with
+ * enough context (name + governorate name) to render chips without a
+ * further round-trip. */
+interface PickedDelegation {
+  id: string;
+  name: string;
+  governorateId: string;
+  governorateName: string;
+}
 
 function ZoneWizard({
   initialZone,
@@ -202,9 +234,25 @@ function ZoneWizard({
 
   const isEditing = !!initialZone;
 
-  const [step, setStep] = useState<WizardStep>(isEditing ? "details" : "governorate");
-  const [governorate, setGovernorate] = useState<Governorate | null>(null);
-  const [delegation, setDelegation] = useState<Delegation | null>(null);
+  // The governorate currently being browsed in the delegation picker. Picks
+  // accumulate across governorate switches, so a single zone can mix e.g.
+  // Tunis + Ben Arous delegations.
+  const [browsingGovernorate, setBrowsingGovernorate] = useState<Governorate | null>(null);
+
+  const [picked, setPicked] = useState<PickedDelegation[]>(() => {
+    if (!initialZone) return [];
+    if (initialZone.delegations && initialZone.delegations.length > 0) {
+      return initialZone.delegations.map((d) => ({
+        id: d.id,
+        name: d.name,
+        governorateId: d.governorateId,
+        governorateName: governorates.find((g) => g.id === d.governorateId)?.name ?? "",
+      }));
+    }
+    // No embedded delegation details — seed bare entries from the ids so the
+    // count/selection is still correct; names resolve once picked/re-picked.
+    return initialZone.delegationIds.map((id) => ({ id, name: id, governorateId: "", governorateName: "" }));
+  });
 
   const [form, setForm] = useState({
     name: initialZone?.name ?? "",
@@ -219,10 +267,8 @@ function ZoneWizard({
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function pickGovernorate(g: Governorate) {
-    setGovernorate(g);
-    setDelegation(null);
-    setStep("delegation");
+  async function browseGovernorate(g: Governorate) {
+    setBrowsingGovernorate(g);
     try {
       await ensureDelegations(g.id);
     } catch {
@@ -230,20 +276,40 @@ function ZoneWizard({
     }
   }
 
-  function pickDelegation(d: Delegation) {
-    setDelegation(d);
-    setStep("details");
+  function isPicked(delegationId: string) {
+    return picked.some((p) => p.id === delegationId);
   }
+
+  function togglePick(d: Delegation, governorateName: string) {
+    setPicked((prev) =>
+      prev.some((p) => p.id === d.id)
+        ? prev.filter((p) => p.id !== d.id)
+        : [...prev, { id: d.id, name: d.name, governorateId: d.governorateId, governorateName }]
+    );
+  }
+
+  function removePick(id: string) {
+    setPicked((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  // Group accumulated picks by governorate for the chips list, e.g.
+  // "Tunis" -> ["Carthage", "La Marsa"], "Ben Arous" -> ["Hammam Lif", ...]
+  const pickedByGovernorate = picked.reduce<Record<string, PickedDelegation[]>>((acc, p) => {
+    const key = p.governorateName || "Autre";
+    (acc[key] ??= []).push(p);
+    return acc;
+  }, {});
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    const delegationId = isEditing ? initialZone!.delegationId : delegation?.id;
-    if (!delegationId) {
-      setError("Sélectionnez un gouvernorat puis une délégation.");
+    if (picked.length === 0) {
+      setError("Sélectionnez au moins une délégation à couvrir par cette zone.");
       return;
     }
+
+    const delegationIds = picked.map((p) => p.id);
 
     setLoading(true);
     try {
@@ -253,6 +319,7 @@ function ZoneWizard({
           nameAr: form.nameAr.trim(),
           description: form.description.trim() || undefined,
           isActive: form.isActive,
+          delegationIds,
         });
         showToast("Zone de livraison mise à jour", "success");
       } else {
@@ -261,7 +328,7 @@ function ZoneWizard({
           nameAr: form.nameAr.trim(),
           description: form.description.trim() || undefined,
           isActive: form.isActive,
-          delegationId,
+          delegationIds,
         });
         showToast("Zone de livraison créée", "success");
       }
@@ -273,9 +340,9 @@ function ZoneWizard({
     }
   }
 
-  const delegationsForGovernorate = governorate ? getDelegations(governorate.id) : undefined;
-  const delegationsLoading = governorate ? isLoadingDelegations(governorate.id) : false;
-  const delegationsError = governorate ? getDelegationsError(governorate.id) : null;
+  const delegationsForBrowsing = browsingGovernorate ? getDelegations(browsingGovernorate.id) : undefined;
+  const delegationsLoading = browsingGovernorate ? isLoadingDelegations(browsingGovernorate.id) : false;
+  const delegationsError = browsingGovernorate ? getDelegationsError(browsingGovernorate.id) : null;
 
   return (
     <Card className="mb-6">
@@ -283,15 +350,9 @@ function ZoneWizard({
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="font-display font-semibold text-ink-900">{isEditing ? "Modifier la zone" : "Nouvelle zone de livraison"}</h2>
-            {!isEditing && (
-              <div className="mt-1 flex items-center gap-1 text-xs text-ink-400">
-                <span className={step === "governorate" ? "font-semibold text-brand-600" : ""}>1. Gouvernorat</span>
-                <ChevronRight className="h-3 w-3" />
-                <span className={step === "delegation" ? "font-semibold text-brand-600" : ""}>2. Délégation</span>
-                <ChevronRight className="h-3 w-3" />
-                <span className={step === "details" ? "font-semibold text-brand-600" : ""}>3. Détails de la zone</span>
-              </div>
-            )}
+            <p className="mt-1 text-xs text-ink-400">
+              Une zone peut couvrir une ou plusieurs délégations, y compris de gouvernorats différents.
+            </p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-50" aria-label="Fermer">
             <X className="h-4 w-4" />
@@ -305,119 +366,146 @@ function ZoneWizard({
           </div>
         )}
 
-        {/* Step 1 — pick a governorate (fetched from the API) */}
-        {!isEditing && step === "governorate" && (
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Delegation coverage — 1 to N, accumulated across governorates */}
           <div>
-            {governoratesLoading ? (
-              <div className="flex items-center gap-2 py-6 text-sm text-ink-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Chargement des gouvernorats...
-              </div>
-            ) : governoratesError ? (
-              <p className="py-6 text-sm text-red-600">{governoratesError}</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {governorates.map((g) => (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => pickGovernorate(g)}
-                    className="rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-ink-800 hover:border-brand-400 hover:bg-brand-50"
-                  >
-                    {g.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 2 — pick a delegation within the chosen governorate */}
-        {!isEditing && step === "delegation" && governorate && (
-          <div>
-            <button
-              type="button"
-              onClick={() => setStep("governorate")}
-              className="mb-3 text-xs font-medium text-ink-500 hover:text-ink-800"
-            >
-              ← Changer de gouvernorat ({governorate.name})
-            </button>
-            {delegationsLoading ? (
-              <div className="flex items-center gap-2 py-6 text-sm text-ink-500">
-                <Loader2 className="h-4 w-4 animate-spin" /> Chargement des délégations...
-              </div>
-            ) : delegationsError ? (
-              <p className="py-6 text-sm text-red-600">{delegationsError}</p>
-            ) : !delegationsForGovernorate || delegationsForGovernorate.length === 0 ? (
-              <p className="py-6 text-sm text-ink-400">Aucune délégation trouvée pour ce gouvernorat.</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {delegationsForGovernorate.map((d) => (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => pickDelegation(d)}
-                    className="rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-ink-800 hover:border-brand-400 hover:bg-brand-50"
-                  >
-                    {d.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 3 — zone details, once a delegation is locked in */}
-        {(isEditing || step === "details") && (delegation || isEditing) && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isEditing && governorate && delegation && (
-              <div className="flex items-center justify-between rounded-xl border border-brand-100 bg-brand-50 px-3.5 py-2.5 text-sm text-brand-800">
-                <span className="flex items-center gap-1.5">
-                  <Check className="h-4 w-4" /> {delegation.name}, {governorate.name}
-                </span>
-                <button type="button" onClick={() => setStep("delegation")} className="text-xs font-semibold underline hover:no-underline">
-                  Changer
-                </button>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input label="Nom de la zone" placeholder="Ex. Centre-ville" value={form.name} onChange={(e) => update("name", e.target.value)} required />
-              <Input
-                label="Nom en arabe"
-                dir="rtl"
-                placeholder="مثال: وسط المدينة"
-                value={form.nameAr}
-                onChange={(e) => update("nameAr", e.target.value)}
-                required
-              />
-            </div>
-            <Textarea
-              label="Description (optionnel)"
-              placeholder="Rues, repères ou limites de la zone..."
-              rows={3}
-              value={form.description}
-              onChange={(e) => update("description", e.target.value)}
-            />
-            <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(e) => update("isActive", e.target.checked)}
-                className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
-              />
-              Zone active (livrable immédiatement)
+            <label className="mb-1.5 block text-sm font-medium text-ink-700">
+              Délégations couvertes <span className="text-red-500">*</span>
             </label>
 
-            <div className="flex gap-2">
-              <Button type="submit" disabled={loading || !form.name.trim() || !form.nameAr.trim()}>
-                {loading ? "Enregistrement..." : isEditing ? "Enregistrer" : "Créer la zone"}
-              </Button>
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Annuler
-              </Button>
+            <div className="rounded-xl border border-ink-200 bg-ink-50/60 p-4">
+              <div className="w-full">
+                <label className="mb-1.5 block text-xs font-medium text-ink-600">Parcourir un gouvernorat</label>
+                {governoratesLoading ? (
+                  <div className="flex items-center gap-2 py-2 text-sm text-ink-500">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Chargement des gouvernorats...
+                  </div>
+                ) : governoratesError ? (
+                  <p className="py-2 text-sm text-red-600">{governoratesError}</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {governorates.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => browseGovernorate(g)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          browsingGovernorate?.id === g.id
+                            ? "border-brand-500 bg-brand-50 text-brand-700"
+                            : "border-ink-200 bg-white text-ink-700 hover:border-brand-300"
+                        }`}
+                      >
+                        {g.name}
+                        {picked.some((p) => p.governorateId === g.id) && (
+                          <span className="ml-1.5 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                            {picked.filter((p) => p.governorateId === g.id).length}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3">
+                {!browsingGovernorate ? (
+                  <p className="text-sm text-ink-400">Choisissez un gouvernorat pour cocher ses délégations.</p>
+                ) : delegationsLoading ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-ink-500">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Chargement des délégations...
+                  </div>
+                ) : delegationsError ? (
+                  <p className="py-4 text-sm text-red-600">{delegationsError}</p>
+                ) : !delegationsForBrowsing || delegationsForBrowsing.length === 0 ? (
+                  <p className="py-4 text-sm text-ink-400">Aucune délégation trouvée pour ce gouvernorat.</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {delegationsForBrowsing.map((d) => (
+                      <label
+                        key={d.id}
+                        className="flex cursor-pointer items-start gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm hover:border-brand-300"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+                          checked={isPicked(d.id)}
+                          onChange={() => togglePick(d, browsingGovernorate.name)}
+                        />
+                        <span className="text-ink-800">{d.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </form>
-        )}
+
+            {picked.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {Object.entries(pickedByGovernorate).map(([governorateName, delegs]) => (
+                  <div key={governorateName} className="flex flex-wrap items-start gap-1.5 text-sm">
+                    <span className="mt-1 shrink-0 font-medium text-ink-600">{governorateName || "—"} :</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {delegs.map((d) => (
+                        <span
+                          key={d.id}
+                          className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
+                        >
+                          <Check className="h-3 w-3" /> {d.name}
+                          <button
+                            type="button"
+                            onClick={() => removePick(d.id)}
+                            className="text-brand-500 hover:text-brand-800"
+                            aria-label={`Retirer ${d.name}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Zone details */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input label="Nom de la zone" placeholder="Ex. Zone A" value={form.name} onChange={(e) => update("name", e.target.value)} required />
+            <Input
+              label="Nom en arabe"
+              dir="rtl"
+              placeholder="مثال: المنطقة أ"
+              value={form.nameAr}
+              onChange={(e) => update("nameAr", e.target.value)}
+              required
+            />
+          </div>
+          <Textarea
+            label="Description (optionnel)"
+            placeholder="Rues, repères ou limites de la zone..."
+            rows={3}
+            value={form.description}
+            onChange={(e) => update("description", e.target.value)}
+          />
+          <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+            <input
+              type="checkbox"
+              checked={form.isActive}
+              onChange={(e) => update("isActive", e.target.checked)}
+              className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+            />
+            Zone active (livrable immédiatement)
+          </label>
+
+          <div className="flex gap-2">
+            <Button type="submit" disabled={loading || !form.name.trim() || !form.nameAr.trim() || picked.length === 0}>
+              {loading ? "Enregistrement..." : isEditing ? "Enregistrer" : "Créer la zone"}
+            </Button>
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Annuler
+            </Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );

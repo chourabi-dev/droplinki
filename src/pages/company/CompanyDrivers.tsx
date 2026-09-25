@@ -10,7 +10,6 @@ import { useToast } from "@/context/ToastContext";
 import { formatDateTime } from "@/lib/utils";
 import { CompanyDriver, VehicleType, VEHICLE_TYPE_LABELS, companyDriverFullName } from "@/types";
 import { CreateCompanyDriverInput } from "@/lib/companyApi";
-import { DeliveryZonePicker } from "@/components/company/DeliveryZonePicker";
 
 const STATUS_LABELS: Record<CompanyDriver["status"], string> = {
   active: "Actif",
@@ -162,7 +161,7 @@ export default function CompanyDrivers() {
 
                 <div className="mt-4 flex items-center justify-between border-t border-ink-100 pt-3 text-xs text-ink-500">
                   <span>{activeCount(d.id)} livraison(s) en cours</span>
-                  <span>Depuis {formatDateTime(d.createdAt)}</span>
+                  <span>Depuis {(d.createdAt)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -188,7 +187,6 @@ interface DriverFormState {
   vehicleModel: string;
   plateNumber: string;
   drivingLicenseNumber: string;
-  deliveryZoneIds: string[];
   sendCredentialsEmail: boolean;
 }
 
@@ -205,7 +203,6 @@ const EMPTY_FORM: DriverFormState = {
   vehicleModel: "",
   plateNumber: "",
   drivingLicenseNumber: "",
-  deliveryZoneIds: [],
   sendCredentialsEmail: false,
 };
 
@@ -252,7 +249,6 @@ function AddDriverForm({
         vehicleModel: form.vehicleModel.trim() || undefined,
         plateNumber: form.plateNumber.trim() || undefined,
         drivingLicenseNumber: form.drivingLicenseNumber.trim() || undefined,
-        deliveryZoneIds: form.deliveryZoneIds.length ? form.deliveryZoneIds : undefined,
         sendCredentialsEmail: form.sendCredentialsEmail && canSendCredentials,
       });
       showToast("Livreur ajouté", "success");
@@ -354,12 +350,6 @@ function AddDriverForm({
                 onChange={(e) => update("drivingLicenseNumber", e.target.value)}
               />
             </div>
-          </section>
-
-          {/* Zones de livraison */}
-          <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Zones de livraison</h3>
-            <DeliveryZonePicker selectedZoneIds={form.deliveryZoneIds} onChange={(ids) => update("deliveryZoneIds", ids)} />
           </section>
 
           <div className="flex gap-2 border-t border-ink-100 pt-5">

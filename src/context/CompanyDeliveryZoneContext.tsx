@@ -43,7 +43,7 @@ export function CompanyDeliveryZoneProvider({ children }: { children: React.Reac
 
   const getZone = useCallback((id: string) => zones.find((z) => z.id === id), [zones]);
   const zonesForDelegation = useCallback(
-    (delegationId: string) => zones.filter((z) => z.delegationId == delegationId),
+    (delegationId: string) => zones.filter((z) => z.delegationIds.includes(delegationId)),
     [zones]
   );
 

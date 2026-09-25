@@ -172,15 +172,16 @@ export const companyGeoApi = {
 // ---------------------------------------------------------------------------
 // Delivery zones — /api/company/delivery-zones
 // ---------------------------------------------------------------------------
-// Each zone belongs to a company and is tied to exactly one delegation
-// (picked via the governorate → delegation cascade above).
+// Each zone belongs to a company and groups together one-to-many delegations
+// (picked, one at a time, via the governorate → delegation cascade above;
+// the same zone can mix delegations from several governorates).
 
 export interface CreateDeliveryZoneInput {
   name: string;
   nameAr: string;
   description?: string;
   isActive: boolean;
-  delegationId: string;
+  delegationIds: string[];
 }
 
 export const companyDeliveryZonesApi = {

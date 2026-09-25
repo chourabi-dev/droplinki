@@ -98,9 +98,12 @@ export interface Delegation {
 }
 
 /**
- * A company-defined delivery zone. Tied to a single delegation (and, through
- * it, a single governorate) so drivers and deliveries can be scoped to the
- * areas the company actually serves.
+ * A company-defined delivery zone. A zone is a company-chosen grouping of
+ * one or more delegations — possibly spread across several governorates
+ * (e.g. "Zone A" = Carthage + La Marsa from Tunis; "Zone B" = Le Bardo +
+ * Sijoumi from Tunis plus Hammam Lif + Boumhel from Ben Arous). Drivers are
+ * then associated with one or more of these zones, never with a delegation
+ * directly.
  */
 export interface DeliveryZone {
   id: string;
@@ -108,10 +111,10 @@ export interface DeliveryZone {
   nameAr: string;
   description?: string;
   isActive: boolean;
-  delegationId: string;
+  /** The one-to-many set of delegations that make up this zone. */
+  delegationIds: string[];
   /** Optionally embedded by the API so the UI doesn't need a second round-trip. */
-  delegation?: Delegation;
-  governorateId?: string;
+  delegations?: Delegation[];
   createdAt: string;
 }
 
