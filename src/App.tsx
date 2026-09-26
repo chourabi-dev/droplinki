@@ -28,6 +28,7 @@ import NotFound from "@/pages/NotFound";
 // contexts are shared, so the two apps never interfere with each other.
 import { CompanyAuthProvider } from "@/context/CompanyAuthContext";
 import { CompanyDriverProvider } from "@/context/CompanyDriverContext";
+import { CompanyClientProvider } from "@/context/CompanyClientContext";
 import { CompanyDeliveryProvider } from "@/context/CompanyDeliveryContext";
 import { CompanyGeoProvider } from "@/context/CompanyGeoContext";
 import { CompanyDeliveryZoneProvider } from "@/context/CompanyDeliveryZoneContext";
@@ -38,6 +39,8 @@ import CompanySignup from "@/pages/company/CompanySignup";
 import CompanyDashboard from "@/pages/company/CompanyDashboard";
 import CompanyDrivers from "@/pages/company/CompanyDrivers";
 import CompanyDriverDetails from "@/pages/company/CompanyDriverDetails";
+import CompanyClients from "@/pages/company/CompanyClients";
+import CompanyClientDetails from "@/pages/company/CompanyClientDetails";
 import CompanyDeliveryZones from "@/pages/company/CompanyDeliveryZones";
 import CompanyDeliveries from "@/pages/company/CompanyDeliveries";
 import CompanyDeliveryDetails from "@/pages/company/CompanyDeliveryDetails";
@@ -45,6 +48,21 @@ import CompanyCreateDelivery from "@/pages/company/CompanyCreateDelivery";
 import CompanyImportDeliveries from "@/pages/company/CompanyImportDeliveries";
 import CompanyStats from "@/pages/company/CompanyStats";
 import CompanySettings from "@/pages/company/CompanySettings";
+
+// --- Client / Expéditeur space -----------------------------------------
+// A third, entirely separate app mounted under /client/*, for shipper
+// (Expéditeur) accounts created by a company from its dashboard (see
+// CompanyClients above). Own auth, own providers, own layout — no routes,
+// storage keys or contexts are shared with the driver or company apps.
+import { ClientAuthProvider } from "@/context/ClientAuthContext";
+import { ClientDeliveryProvider } from "@/context/ClientDeliveryContext";
+import { ClientLayout } from "@/components/client/ClientLayout";
+import ClientLogin from "@/pages/client/ClientLogin";
+import ClientDashboard from "@/pages/client/ClientDashboard";
+import ClientDeliveries from "@/pages/client/ClientDeliveries";
+import ClientDeliveryDetails from "@/pages/client/ClientDeliveryDetails";
+import ClientCreateDelivery from "@/pages/client/ClientCreateDelivery";
+import ClientProfile from "@/pages/client/ClientProfile";
 
 export default function App() {
   return (
@@ -54,7 +72,10 @@ export default function App() {
           <CompanyGeoProvider>
             <CompanyDeliveryZoneProvider>
               <CompanyDriverProvider>
+                <CompanyClientProvider>
                 <CompanyDeliveryProvider>
+                <ClientAuthProvider>
+                <ClientDeliveryProvider>
                   <ToastProvider>
                     <BrowserRouter>
                       <Routes>
@@ -87,6 +108,8 @@ export default function App() {
                           <Route path="/company/dashboard" element={<CompanyDashboard />} />
                           <Route path="/company/drivers" element={<CompanyDrivers />} />
                           <Route path="/company/drivers/:id" element={<CompanyDriverDetails />} />
+                          <Route path="/company/clients" element={<CompanyClients />} />
+                          <Route path="/company/clients/:id" element={<CompanyClientDetails />} />
                           <Route path="/company/delivery-zones" element={<CompanyDeliveryZones />} />
                           <Route path="/company/deliveries" element={<CompanyDeliveries />} />
                           <Route path="/company/deliveries/new" element={<CompanyCreateDelivery />} />
@@ -96,11 +119,24 @@ export default function App() {
                           <Route path="/company/settings" element={<CompanySettings />} />
                         </Route>
 
+                        {/* Client / Expéditeur app — own URL namespace, own auth, own layout */}
+                        <Route path="/client/login" element={<ClientLogin />} />
+                        <Route element={<ClientLayout />}>
+                          <Route path="/client/dashboard" element={<ClientDashboard />} />
+                          <Route path="/client/deliveries" element={<ClientDeliveries />} />
+                          <Route path="/client/deliveries/:id" element={<ClientDeliveryDetails />} />
+                          <Route path="/client/create-delivery" element={<ClientCreateDelivery />} />
+                          <Route path="/client/profile" element={<ClientProfile />} />
+                        </Route>
+
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </BrowserRouter>
                   </ToastProvider>
+                </ClientDeliveryProvider>
+                </ClientAuthProvider>
                 </CompanyDeliveryProvider>
+                </CompanyClientProvider>
               </CompanyDriverProvider>
             </CompanyDeliveryZoneProvider>
           </CompanyGeoProvider>

@@ -9,6 +9,7 @@ import {
   Delegation,
   DeliveryZone,
   VehicleType,
+  Client,
 } from "@/types";
 import { ApiError, isNetworkError } from "@/lib/api";
 
@@ -236,6 +237,41 @@ export const companyDriversApi = {
 
   remove: (id: string) =>
     request<void>(`/api/company/drivers/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+// ---------------------------------------------------------------------------
+// Clients roster (Expéditeurs) — /api/company/clients
+// ---------------------------------------------------------------------------
+// A "client" here is a shipper account created by the company. The client
+// then logs into their own space (src/pages/client, src/context/Client*
+// Context.tsx) to create deliveries for their own recipients. This mirrors
+// the drivers roster above but the account belongs to a shipper, not a
+// driver.
+
+export interface CreateCompanyClientInput {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  /** CIN or Matricule Fiscale — required, used for pickups & invoicing. */
+  taxId: string;
+  governorateId: string;
+  delegationId: string;
+  /** Free-text address complement (street, building, floor...) — used later for pickups. */
+  address: string;
+}
+
+export const companyClientsApi = {
+  list: () => request<Client[]>("/api/company/clients", { method: "GET" }),
+
+  create: (input: CreateCompanyClientInput) =>
+    request<Client>("/api/company/clients", { method: "POST", body: input }),
+
+  update: (id: string, input: Partial<CreateCompanyClientInput> & { status?: Client["status"] }) =>
+    request<Client>(`/api/company/clients/${encodeURIComponent(id)}`, { method: "PATCH", body: input }),
+
+  remove: (id: string) =>
+    request<void>(`/api/company/clients/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 
 // ---------------------------------------------------------------------------

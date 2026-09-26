@@ -204,6 +204,80 @@ export interface CompanyDelivery {
   completedAt?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Client / Expéditeur space
+// ---------------------------------------------------------------------------
+// A "client" here is a shipper account (Expéditeur) that belongs to a
+// company's roster — created from the company dashboard, never self-signup.
+// The client then logs into their own mobile-first app (src/pages/client,
+// src/context/Client*Context.tsx, src/lib/clientApi.ts) to create deliveries
+// for their own end recipients and track them. It is additive to the models
+// above and does not change them.
+
+/** A shipper (Expéditeur) account that belongs to a company's roster. */
+export interface Client {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  /** CIN (Carte d'Identité Nationale) or Matricule Fiscale — identity/tax reference, required for pickups and invoicing. */
+  taxId: string;
+  governorateId: string;
+  governorateName?: string;
+  delegationId: string;
+  delegationName?: string;
+  /** Free-text address complement (street, building, floor...) within the delegation above. */
+  address: string;
+  status: "active" | "invited" | "inactive";
+  activeDeliveries?: number;
+  completedDeliveries?: number;
+  createdAt: string;
+}
+
+export function clientFullName(c: Pick<Client, "firstName" | "lastName">): string {
+  return `${c.firstName} ${c.lastName}`.trim();
+}
+
+/**
+ * A delivery created by a client (Expéditeur) for one of their own
+ * recipients. Shares the same status lifecycle as the other delivery
+ * models. The recipient info is split into first/last name and two
+ * optional phone numbers (a backup contact), plus a free-text address and
+ * a short "help text" (indications to find the place — landmark, floor,
+ * gate color...). Generating a validation link is optional: when enabled,
+ * the backend returns a `shareUrl` pointing at the same public tracking
+ * page used elsewhere in the app, which the client can send to the
+ * recipient so they can confirm / share their exact position.
+ */
+export interface ClientDelivery {
+  id: string; // e.g. EX-1042
+  recipientFirstName: string;
+  recipientLastName: string;
+  recipientPhone1: string;
+  recipientPhone2?: string;
+  address: string;
+  helpText?: string;
+  reference?: string;
+  amount?: number;
+  status: DeliveryStatus;
+  /** Whether a validation link was requested for this delivery. */
+  hasValidationLink: boolean;
+  /** Relative path e.g. /d/EX-1042 — only present when hasValidationLink is true. */
+  shareUrl?: string;
+  customerLatitude?: number;
+  customerLongitude?: number;
+  createdAt: string;
+  linkSentAt?: string;
+  linkOpenedAt?: string;
+  locationReceivedAt?: string;
+  completedAt?: string;
+}
+
+export function clientDeliveryRecipientFullName(d: Pick<ClientDelivery, "recipientFirstName" | "recipientLastName">): string {
+  return `${d.recipientFirstName} ${d.recipientLastName}`.trim();
+}
+
 export interface CsvImportRow {
   customerName: string;
   customerPhone: string;
