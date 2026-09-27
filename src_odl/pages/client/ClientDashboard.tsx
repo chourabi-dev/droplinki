@@ -18,13 +18,13 @@ export default function ClientDashboard() {
   const todayDeliveries = deliveries.filter((d) => isToday(d.createdAt));
   const pending = deliveries.filter((d) => d.status !== "delivered");
   const completed = deliveries.filter((d) => d.status === "delivered");
- 
+  const withLink = deliveries.filter((d) => d.hasValidationLink);
 
   const stats = [
     { label: "Livraisons aujourd'hui", value: todayDeliveries.length, icon: Package, tint: "bg-brand-50 text-brand-600" },
     { label: "En cours", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
     { label: "Livrées", value: completed.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" },
-    //{ label: "Avec lien de suivi", value: withLink.length, icon: Link2, tint: "bg-ink-100 text-ink-700" },
+    { label: "Avec lien de suivi", value: withLink.length, icon: Link2, tint: "bg-ink-100 text-ink-700" },
   ];
 
   const recent = [...deliveries].slice(0, 6);

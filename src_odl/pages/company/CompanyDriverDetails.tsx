@@ -14,13 +14,9 @@ import {
   Car,
   Calendar,
   AlertCircle,
-  MapPinned,
-  X,
-  ChevronDown,
 } from "lucide-react";
 import { useCompanyDrivers, companyErrorMessage } from "@/context/CompanyDriverContext";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
-import { useCompanyDeliveryZones } from "@/context/CompanyDeliveryZoneContext";
 import { useToast } from "@/context/ToastContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -48,14 +44,12 @@ export default function CompanyDriverDetails() {
   const navigate = useNavigate();
   const { getDriver, updateDriver, removeDriver, isLoading } = useCompanyDrivers();
   const { deliveries } = useCompanyDeliveries();
-  const { zones: allZones } = useCompanyDeliveryZones();
   const { showToast } = useToast();
 
   const driver = id ? getDriver(id) : undefined;
 
   const [form, setForm] = useState<EditableFields | null>(null);
   const [zoneIds, setZoneIds] = useState<string[]>([]);
-  const [zonePickerOpen, setZonePickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -104,22 +98,6 @@ export default function CompanyDriverDetails() {
   function update<K extends keyof EditableFields>(key: K, value: EditableFields[K]) {
     setForm((f) => (f ? { ...f, [key]: value } : f));
   }
-
-  function zoneName(zoneId: string): string {
-    return allZones.find((z) => z.id === zoneId)?.name ?? zoneId;
-  }
-
-  function addZoneId(zoneId: string) {
-    if (!zoneId || zoneIds.includes(zoneId)) return;
-    setZoneIds((prev) => [...prev, zoneId]);
-    setZonePickerOpen(false);
-  }
-
-  function removeZoneId(zoneId: string) {
-    setZoneIds((prev) => prev.filter((zid) => zid !== zoneId));
-  }
-
-  const availableZones = allZones.filter((z) => !zoneIds.includes(z.id));
 
   const activeDeliveries = deliveries.filter((d) => d.assignedDriverId === driver.id && d.status !== "delivered").length;
   const completedDeliveries = deliveries.filter((d) => d.assignedDriverId === driver.id && d.status === "delivered").length;
@@ -247,7 +225,7 @@ export default function CompanyDriverDetails() {
         <StatBox icon={Package} label="Livraisons en cours" value={String(activeDeliveries)} />
         <StatBox icon={CheckCircle2} label="Livraisons terminées" value={String(completedDeliveries)} />
         <StatBox icon={MapPin} label="Zones couvertes" value={String(driver.deliveryZoneIds?.length || 0)} />
-        <StatBox icon={Calendar} label="Membre depuis" value={ (driver.createdAt)} />
+        <StatBox icon={Calendar} label="Membre depuis" value={ (driver.createdAt).split(" · ")[0]} />
       </div>
 
       {error && (
@@ -302,73 +280,7 @@ export default function CompanyDriverDetails() {
             </div>
           </section>
 
-          <section>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Zones de livraison</h3>
-            <div className="rounded-2xl border border-ink-100 bg-ink-50/40 p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <MapPinned className="h-4 w-4 text-brand-500" />
-                <p className="text-sm text-ink-600">
-                  Associez ce livreur à une ou plusieurs zones de livraison.
-                </p>
-              </div>
-
-              {zoneIds.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {zoneIds.map((zid) => (
-                    <span
-                      key={zid}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700"
-                    >
-                      {zoneName(zid)}
-                      <button
-                        type="button"
-                        onClick={() => removeZoneId(zid)}
-                        className="rounded-full p-0.5 text-brand-500 hover:bg-brand-100 hover:text-brand-700"
-                        aria-label={`Retirer la zone ${zoneName(zid)}`}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setZonePickerOpen((o) => !o)}
-                  disabled={availableZones.length === 0}
-                  className="flex w-full items-center justify-between rounded-xl border border-ink-300 bg-white px-4 py-3 text-left text-[15px] text-ink-700 disabled:cursor-not-allowed disabled:opacity-50 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10"
-                >
-                  <span>
-                    {availableZones.length === 0
-                      ? zoneIds.length === 0
-                        ? "Aucune zone disponible"
-                        : "Toutes les zones sont déjà associées"
-                      : "Ajouter une zone de livraison…"}
-                  </span>
-                  <ChevronDown className="h-4 w-4 text-ink-400" />
-                </button>
-
-                {zonePickerOpen && availableZones.length > 0 && (
-                  <div className="absolute z-10 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-ink-100 bg-white py-1 shadow-lg">
-                    {availableZones.map((z) => (
-                      <button
-                        key={z.id}
-                        type="button"
-                        onClick={() => addZoneId(z.id)}
-                        disabled={!z.isActive}
-                        className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-ink-700 hover:bg-brand-50 disabled:cursor-not-allowed disabled:text-ink-300"
-                      >
-                        <span>{z.name}</span>
-                        {!z.isActive && <span className="text-xs text-ink-400">Inactive</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
+      
 
           <div className="flex items-center gap-2 border-t border-ink-100 pt-5">
             <Button onClick={handleSave} disabled={!requiredFilled || !isDirty || saving}>

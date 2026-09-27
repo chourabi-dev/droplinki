@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, Link2, ArrowRight, Loader2, AlertCircle } from "lucide-react";
-import { useClientDeliveries } from "@/context/ClientDeliveryContext";
-import { useClientAuth } from "@/context/ClientAuthContext";
-import { ClientDeliveryCard } from "@/components/client/ClientDeliveryCard";
+import { Plus, Package, Clock, CheckCircle2, MapPinned, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { useDeliveries } from "@/context/DeliveryContext";
+import { useAuth } from "@/context/AuthContext";
+import { DeliveryCard } from "@/components/DeliveryCard";
 import { Button } from "@/components/ui/Button";
+import { distanceKm } from "@/lib/utils";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 
 function isToday(iso: string) {
   const d = new Date(iso);
@@ -11,20 +13,28 @@ function isToday(iso: string) {
   return d.toDateString() === now.toDateString();
 }
 
-export default function ClientDashboard() {
-  const { deliveries, isLoading, error } = useClientDeliveries();
-  const { client } = useClientAuth();
+export default function Dashboard() {
+  const { deliveries, isLoading, error } = useDeliveries();
+  const { driver } = useAuth();
+  // The driver's real position comes from the browser's geolocation API, not
+  // from the delivery's static driverLatitude/driverLongitude fields.
+  const { location: driverLocation } = useLiveLocation();
 
   const todayDeliveries = deliveries.filter((d) => isToday(d.createdAt));
-  const pending = deliveries.filter((d) => d.status !== "delivered");
+  const pending = deliveries.filter((d) => d.status === "waiting_location");
   const completed = deliveries.filter((d) => d.status === "delivered");
- 
+  const totalDistance = deliveries.reduce((sum, d) => {
+    if (driverLocation && d.customerLatitude && d.customerLongitude) {
+      return sum + distanceKm(driverLocation.lat, driverLocation.lon, d.customerLatitude, d.customerLongitude);
+    }
+    return sum;
+  }, 0);
 
   const stats = [
     { label: "Livraisons aujourd'hui", value: todayDeliveries.length, icon: Package, tint: "bg-brand-50 text-brand-600" },
-    { label: "En cours", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
-    { label: "Livrées", value: completed.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" },
-    //{ label: "Avec lien de suivi", value: withLink.length, icon: Link2, tint: "bg-ink-100 text-ink-700" },
+    { label: "En attente de position", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
+    { label: "Livraisons terminées", value: completed.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" },
+    { label: "Distance totale", value: `${totalDistance.toFixed(1)} km`, icon: MapPinned, tint: "bg-ink-100 text-ink-700" },
   ];
 
   const recent = [...deliveries].slice(0, 6);
@@ -34,11 +44,11 @@ export default function ClientDashboard() {
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink-950 sm:text-3xl">
-            Bonjour{client?.firstName ? `, ${client.firstName}` : ""} 👋
+            Bonjour{driver?.name ? `, ${driver.name.split(" ")[0]}` : ""} 👋
           </h1>
-          <p className="mt-1 text-ink-500">Voici un aperçu de vos livraisons.</p>
+          <p className="mt-1 text-ink-500">Voici un aperçu de votre activité.</p>
         </div>
-        <Link to="/client/create-delivery" className="hidden sm:block">
+        <Link to="/create-delivery" className="hidden sm:block">
           <Button>
             <Plus className="h-4 w-4" /> Nouvelle livraison
           </Button>
@@ -60,7 +70,7 @@ export default function ClientDashboard() {
       <div className="mt-9">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold text-ink-900">Livraisons récentes</h2>
-          <Link to="/client/deliveries" className="flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700">
+          <Link to="/deliveries" className="flex items-center gap-1 text-sm font-semibold text-brand-600 hover:text-brand-700">
             Tout voir <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -76,7 +86,7 @@ export default function ClientDashboard() {
         ) : (
           <div className="space-y-3">
             {recent.map((d) => (
-              <ClientDeliveryCard key={d.id} delivery={d} />
+              <DeliveryCard key={d.id} delivery={d} driverLocation={driverLocation} />
             ))}
           </div>
         )}
@@ -102,11 +112,9 @@ function EmptyState() {
         <Package className="h-6 w-6" />
       </div>
       <p className="font-display font-semibold text-ink-900">Aucune livraison pour l'instant</p>
-      <p className="mt-1 max-w-xs text-sm text-ink-500">Créez votre première livraison pour obtenir un lien à envoyer à votre destinataire.</p>
-      <Link to="/client/create-delivery" className="mt-5">
-        <Button size="sm">
-          <Plus className="h-4 w-4" /> Nouvelle livraison
-        </Button>
+      <p className="mt-1 max-w-xs text-sm text-ink-500">Créez votre première livraison pour obtenir un lien à envoyer à votre client.</p>
+      <Link to="/create-delivery" className="mt-5">
+        <Button size="sm"><Plus className="h-4 w-4" /> Nouvelle livraison</Button>
       </Link>
     </div>
   );
