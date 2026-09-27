@@ -6,6 +6,7 @@ import { useToast } from "@/context/ToastContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
+import { PrintDeliverySheetButton } from "@/components/client/PrintDeliverySheetButton";
 import { formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
 import { ClientDelivery, clientDeliveryRecipientFullName } from "@/types";
 
@@ -77,6 +78,7 @@ export default function ClientDeliveryDetails() {
             {delivery.id} {delivery.designation && `· ${delivery.designation}`} · créée à {formatTime(delivery.createdAt)}
           </p>
         </div>
+        <PrintDeliverySheetButton deliveryId={delivery.id} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

@@ -1,16 +1,31 @@
 import { useNavigate } from "react-router-dom";
 import { ClientDelivery, clientDeliveryRecipientFullName } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
+import { PrintDeliverySheetButton } from "@/components/client/PrintDeliverySheetButton";
 import { formatDateTime, formatAmount } from "@/lib/utils";
 import { ChevronRight, MapPin, User, Link2 } from "lucide-react";
 
 export function ClientDeliveryCard({ delivery }: { delivery: ClientDelivery }) {
   const navigate = useNavigate();
 
+  function goToDetails() {
+    navigate(`/client/deliveries/${delivery.id}`);
+  }
+
   return (
-    <button
-      onClick={() => navigate(`/client/deliveries/${delivery.id}`)}
-      className="group flex w-full items-center gap-4 rounded-2xl border border-ink-100 bg-white p-4 text-left shadow-card transition-all hover:border-brand-200 hover:shadow-lift sm:p-5"
+    // A <div> (not a <button>) so the print button below can be a real nested
+    // <button> — buttons can't legally nest inside buttons in HTML.
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={goToDetails}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          goToDetails();
+        }
+      }}
+      className="group flex w-full cursor-pointer items-center gap-4 rounded-2xl border border-ink-100 bg-white p-4 text-left shadow-card transition-all hover:border-brand-200 hover:shadow-lift sm:p-5"
     >
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
         <User className="h-5 w-5" />
@@ -37,10 +52,20 @@ export function ClientDeliveryCard({ delivery }: { delivery: ClientDelivery }) {
         </div>
       </div>
       <div className="hidden shrink-0 items-center gap-3 sm:flex">
-        <StatusBadge status={delivery.status} />
+        
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                
+            >
+              <span className="h-1.5 w-1.5 rounded-full" />
+              {delivery.status}
+            </span>
+
+        <PrintDeliverySheetButton deliveryId={delivery.id} variant="icon" />
         <ChevronRight className="h-4 w-4 text-ink-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-500" />
       </div>
+      <PrintDeliverySheetButton deliveryId={delivery.id} variant="icon" className="sm:hidden" />
       <ChevronRight className="h-4 w-4 shrink-0 text-ink-300 sm:hidden" />
-    </button>
+    </div>
   );
 }

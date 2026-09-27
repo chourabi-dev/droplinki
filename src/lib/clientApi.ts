@@ -111,6 +111,40 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return data as T;
 }
 
+/**
+ * Like `request` above, but for endpoints that return a binary file (PDF)
+ * instead of JSON — e.g. the delivery sheet download. Same auth/error
+ * handling, but resolves to a Blob instead of parsing JSON.
+ */
+async function requestBlob(path: string): Promise<Blob> {
+  const headers: Record<string, string> = { Accept: "application/pdf" };
+  const token = getClientToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { headers });
+  } catch (err) {
+    throw new ApiError(
+      "Impossible de joindre le serveur. Vérifiez que le backend Symfony tourne sur " + API_BASE_URL,
+      0,
+      err
+    );
+  }
+
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type") || "";
+    const isJSON = contentType.includes("application/json");
+    const data = isJSON ? await response.json().catch(() => undefined) : undefined;
+    const message =
+      (data && typeof data === "object" && "message" in data && String((data as any).message)) ||
+      `Erreur serveur (${response.status})`;
+    throw new ApiError(message, response.status, data);
+  }
+
+  return response.blob();
+}
+
 export { ApiError, isNetworkError };
 
 // ---------------------------------------------------------------------------
@@ -174,4 +208,30 @@ export const clientDeliveriesApi = {
 
   create: (input: CreateClientDeliveryInput) =>
     request<ClientDelivery>("/api/client/deliveries", { method: "POST", body: input }),
+
+  /** Downloads the printable delivery sheet (PDF) for one delivery. */
+  downloadPdf: (id: string) => requestBlob(`/api/client/deliveries/${encodeURIComponent(id)}/pdf`),
+};
+
+// ---------------------------------------------------------------------------
+// Public tracking — /api/open/client-delivery (no authentication)
+// ---------------------------------------------------------------------------
+// Powers the recipient-facing page at /c/:deliveryId (src/pages/
+// CustomerClientTracking.tsx), opened from the `shareUrl` of a ClientDelivery
+// (see types.ts). Mirrors deliveriesApi's /api/open/deliveries/* routes in
+// lib/api.ts, but scoped to the client (Expéditeur) delivery model — same
+// "no auth, scoped strictly to the given id" contract applies here.
+export const clientDeliveriesPublicApi = {
+  getPublic: (id: string) =>
+    request<ClientDelivery>(`/api/open/client-delivery/${encodeURIComponent(id)}`, { method: "GET", auth: false }),
+
+  markLinkOpened: (id: string) =>
+    request<void>(`/api/open/client-delivery/${encodeURIComponent(id)}/opened`, { method: "POST", auth: false }),
+
+  shareLocation: (id: string, latitude: number, longitude: number) =>
+    request<ClientDelivery>(`/api/open/client-delivery/${encodeURIComponent(id)}/location`, {
+      method: "POST",
+      body: { latitude, longitude },
+      auth: false,
+    }),
 };

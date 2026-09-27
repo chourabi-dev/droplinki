@@ -53,6 +53,18 @@ export function googleMapsUrl(lat: number, lon: number): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
 }
 
+/** Triggers a browser "Save as" for an in-memory Blob (e.g. a PDF fetched via fetch()). */
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function whatsappUrl(phoneOrBlank: string, message: string): string {
   const base = phoneOrBlank ? `https://wa.me/${phoneOrBlank}` : `https://wa.me/`;
   return `${base}?text=${encodeURIComponent(message)}`;
