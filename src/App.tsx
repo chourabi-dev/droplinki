@@ -63,6 +63,7 @@ import ClientDeliveries from "@/pages/client/ClientDeliveries";
 import ClientDeliveryDetails from "@/pages/client/ClientDeliveryDetails";
 import ClientCreateDelivery from "@/pages/client/ClientCreateDelivery";
 import ClientProfile from "@/pages/client/ClientProfile";
+import CustomerClientTracking from "./pages/CustomerClientTracking";
 
 export default function App() {
   return (
@@ -128,6 +129,11 @@ export default function App() {
                           <Route path="/client/create-delivery" element={<ClientCreateDelivery />} />
                           <Route path="/client/profile" element={<ClientProfile />} />
                         </Route>
+
+
+                        {/* Public customer-facing tracking page — no auth required */}
+                        <Route path="/c/:deliveryId" element={<CustomerClientTracking />} />
+
 
                         <Route path="*" element={<NotFound />} />
                       </Routes>

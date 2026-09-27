@@ -1,25 +1,40 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, MessageCircle, Check, PackagePlus, AlertCircle, Link2 } from "lucide-react";
+import { ArrowLeft, Copy, MessageCircle, Check, PackagePlus, AlertCircle, Link2, Info } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
+import { CoverageAreaPicker } from "@/components/client/CoverageAreaPicker";
+import { useClientAuth } from "@/context/ClientAuthContext";
 import { useClientDeliveries, clientDeliveryErrorMessage } from "@/context/ClientDeliveryContext";
 import { useToast } from "@/context/ToastContext";
 import { ClientDelivery, clientDeliveryRecipientFullName } from "@/types";
-import { whatsappUrl } from "@/lib/utils";
+import { formatAmount, whatsappUrl } from "@/lib/utils";
 
 export default function ClientCreateDelivery() {
   const navigate = useNavigate();
+  const { client } = useClientAuth();
   const { createDelivery } = useClientDeliveries();
   const { showToast } = useToast();
+
+
+
+  const availableGovernorates = client?.company?.availableGovernorates ?? [];
+  const availableDelegations = client?.company?.availableDelegations ?? [];
+ 
+
+  const deliveryFees = client?.company?.deliveryFees;
 
   const [recipientFirstName, setRecipientFirstName] = useState("");
   const [recipientLastName, setRecipientLastName] = useState("");
   const [recipientPhone1, setRecipientPhone1] = useState("");
   const [recipientPhone2, setRecipientPhone2] = useState("");
+  const [governorateId, setGovernorateId] = useState("");
+  const [delegationId, setDelegationId] = useState("");
   const [address, setAddress] = useState("");
   const [helpText, setHelpText] = useState("");
-  const [reference, setReference] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [dimensions, setDimensions] = useState("");
+  const [weight, setWeight] = useState("");
   const [amount, setAmount] = useState("");
   const [generateValidationLink, setGenerateValidationLink] = useState(true);
   const [created, setCreated] = useState<ClientDelivery | null>(null);
@@ -27,16 +42,27 @@ export default function ClientCreateDelivery() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const requiredFilled = recipientFirstName.trim() && recipientLastName.trim() && recipientPhone1.trim() && address.trim();
+  const requiredFilled =
+    recipientFirstName.trim() &&
+    recipientLastName.trim() &&
+    recipientPhone1.trim() &&
+    governorateId &&
+    delegationId &&
+    address.trim() &&
+    designation.trim();
 
   function resetForm() {
     setRecipientFirstName("");
     setRecipientLastName("");
     setRecipientPhone1("");
     setRecipientPhone2("");
+    setGovernorateId("");
+    setDelegationId("");
     setAddress("");
     setHelpText("");
-    setReference("");
+    setDesignation("");
+    setDimensions("");
+    setWeight("");
     setAmount("");
     setGenerateValidationLink(true);
   }
@@ -51,9 +77,13 @@ export default function ClientCreateDelivery() {
         recipientLastName: recipientLastName.trim(),
         recipientPhone1: recipientPhone1.trim(),
         recipientPhone2: recipientPhone2.trim() || undefined,
+        governorateId,
+        delegationId,
         address: address.trim(),
         helpText: helpText.trim() || undefined,
-        reference: reference.trim() || undefined,
+        designation: designation.trim(),
+        dimensions: dimensions.trim() || undefined,
+        weight: weight ? Number(weight) : undefined,
         amount: amount ? Number(amount) : undefined,
         generateValidationLink,
       });
@@ -69,7 +99,7 @@ export default function ClientCreateDelivery() {
 
   if (created) {
     const hasLink = created.hasValidationLink && !!created.shareUrl;
-    const fullLink = hasLink ? `${window.location.origin}${created.shareUrl}` : "";
+    const fullLink = hasLink ? `${created.shareUrl}` : "";
     const message = `🚚 Une livraison est en route pour vous.\nOuvrez ce lien et partagez votre position :\n${fullLink}`;
 
     return (
@@ -205,6 +235,15 @@ export default function ClientCreateDelivery() {
         <section>
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Adresse</h3>
           <div className="space-y-4">
+            <CoverageAreaPicker
+              governorates={availableGovernorates}
+              delegations={availableDelegations}
+              governorateId={governorateId}
+              delegationId={delegationId}
+              onGovernorateChange={setGovernorateId}
+              onDelegationChange={setDelegationId}
+              required
+            />
             <Textarea
               label="Adresse"
               placeholder="12 Rue de Marseille, Tunis"
@@ -224,10 +263,38 @@ export default function ClientCreateDelivery() {
         </section>
 
         <section>
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Détails (optionnel)</h3>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-400">Détails</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input label="Référence / commande" placeholder="CMD-8821" value={reference} onChange={(e) => setReference(e.target.value)} />
-            <Input label="Montant à encaisser" type="number" placeholder="45" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Input
+              label="Désignation"
+              placeholder="Ex. Colis vêtements"
+              value={designation}
+              onChange={(e) => setDesignation(e.target.value)}
+              required
+            />
+            <div>
+              <Input label="Montant à encaisser" type="number" placeholder="45" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <p className="mt-1.5 flex items-start gap-1 text-xs text-ink-500">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Ce prix n'inclut pas les frais de livraison.
+                  {deliveryFees !== undefined && <> Frais de livraison de votre société : {formatAmount(deliveryFees)}.</>}
+                </span>
+              </p>
+            </div>
+            <Input
+              label="Dimensions (optionnel)"
+              placeholder="Ex. 30x20x10 cm"
+              value={dimensions}
+              onChange={(e) => setDimensions(e.target.value)}
+            />
+            <Input
+              label="Poids en kg (optionnel)"
+              type="number"
+              placeholder="Ex. 2.5"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+            />
           </div>
         </section>
 

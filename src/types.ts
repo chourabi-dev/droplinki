@@ -214,6 +214,19 @@ export interface CompanyDelivery {
 // for their own end recipients and track them. It is additive to the models
 // above and does not change them.
 
+/**
+ * The delivery company a client (shipper) belongs to, as embedded in
+ * `GET /api/client/me`. Drives the delivery-creation form: the fee is shown
+ * as an informational note (it is never added to the client's own amount
+ * field), and the governorate/delegation the client can pick for a
+ * recipient's address is restricted to what the company actually covers.
+ */
+export interface ClientCompanyInfo {
+  deliveryFees: number;
+  availableGovernorates: Governorate[];
+  availableDelegations: Delegation[];
+}
+
 /** A shipper (Expéditeur) account that belongs to a company's roster. */
 export interface Client {
   id: string;
@@ -233,6 +246,8 @@ export interface Client {
   activeDeliveries?: number;
   completedDeliveries?: number;
   createdAt: string;
+  /** The company this client ships for, with its delivery fee and coverage area. */
+  company?: ClientCompanyInfo;
 }
 
 export function clientFullName(c: Pick<Client, "firstName" | "lastName">): string {
@@ -256,9 +271,19 @@ export interface ClientDelivery {
   recipientLastName: string;
   recipientPhone1: string;
   recipientPhone2?: string;
+  /** Governorate of the recipient's address — restricted to the shipping company's coverage area. */
+  governorateId: string;
+  governorateName?: string;
+  /** Delegation of the recipient's address — restricted to the shipping company's coverage area. */
+  delegationId: string;
+  delegationName?: string;
+  /** Free-text address complement (street, building, floor...) within the delegation above. */
   address: string;
   helpText?: string;
-  reference?: string;
+  designation: string;
+  dimensions?: string;
+  weight?: number;
+  /** Amount to collect from the recipient (cash on delivery). Does not include the delivery fees. */
   amount?: number;
   status: DeliveryStatus;
   /** Whether a validation link was requested for this delivery. */

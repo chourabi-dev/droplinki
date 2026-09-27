@@ -152,9 +152,16 @@ export interface CreateClientDeliveryInput {
   recipientLastName: string;
   recipientPhone1: string;
   recipientPhone2?: string;
+  /** Must be one of the company's `availableGovernorates` (see `Client.company`). */
+  governorateId: string;
+  /** Must be one of the company's `availableDelegations` (see `Client.company`), within the governorate above. */
+  delegationId: string;
   address: string;
   helpText?: string;
-  reference?: string;
+  designation: string;
+  dimensions?: string;
+  weight?: number;
+  /** Amount to collect from the recipient (cash on delivery). Does not include the delivery fees. */
   amount?: number;
   /** When true, the backend generates a `shareUrl` the client can send to the recipient. */
   generateValidationLink: boolean;

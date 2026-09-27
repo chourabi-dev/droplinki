@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Copy, MessageCircle, Clock, Wallet, StickyNote, Phone, Loader2, MapPinned, Navigation, Link2 } from "lucide-react";
+import { ArrowLeft, Copy, MessageCircle, Clock, Wallet, StickyNote, Phone, Loader2, MapPinned, Navigation, Link2, Package, Ruler, Scale } from "lucide-react";
 import { useClientDeliveries, clientDeliveryErrorMessage } from "@/context/ClientDeliveryContext";
 import { useToast } from "@/context/ToastContext";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -58,7 +58,7 @@ export default function ClientDeliveryDetails() {
 
   const hasLocation = delivery.customerLatitude != null && delivery.customerLongitude != null;
   const hasLink = delivery.hasValidationLink && !!delivery.shareUrl;
-  const fullLink = hasLink ? `${window.location.origin}${delivery.shareUrl}` : "";
+  const fullLink = hasLink ? `${delivery.shareUrl}` : "";
   const message = `🚚 Une livraison est en route pour vous.\nOuvrez ce lien et partagez votre position :\n${fullLink}`;
 
   return (
@@ -74,7 +74,7 @@ export default function ClientDeliveryDetails() {
             <StatusBadge status={delivery.status} />
           </div>
           <p className="mt-1 text-sm text-ink-500">
-            {delivery.id} {delivery.reference && `· réf. ${delivery.reference}`} · créée à {formatTime(delivery.createdAt)}
+            {delivery.id} {delivery.designation && `· ${delivery.designation}`} · créée à {formatTime(delivery.createdAt)}
           </p>
         </div>
       </div>
@@ -126,11 +126,25 @@ export default function ClientDeliveryDetails() {
               <Row icon={Phone} label="Téléphone 1" value={delivery.recipientPhone1 || "—"} />
               {delivery.recipientPhone2 && <Row icon={Phone} label="Téléphone 2" value={delivery.recipientPhone2} />}
               <Row icon={MapPinned} label="Adresse" value={delivery.address} />
+              {(delivery.delegationName || delivery.governorateName) && (
+                <Row
+                  icon={MapPinned}
+                  label="Zone"
+                  value={[delivery.delegationName, delivery.governorateName].filter(Boolean).join(", ")}
+                />
+              )}
               {delivery.helpText && <Row icon={StickyNote} label="Aide pour trouver" value={delivery.helpText} />}
-              {delivery.amount !== undefined && <Row icon={Wallet} label="Montant à encaisser" value={formatAmount(delivery.amount)} />}
+              {delivery.designation && <Row icon={Package} label="Désignation" value={delivery.designation} />}
+              {delivery.dimensions && <Row icon={Ruler} label="Dimensions" value={delivery.dimensions} />}
+              {delivery.weight !== undefined && <Row icon={Scale} label="Poids" value={`${delivery.weight} kg`} />}
+              {delivery.amount !== undefined && (
+                <Row icon={Wallet} label="Montant à encaisser (hors frais de livraison)" value={formatAmount(delivery.amount)} />
+              )}
               <Row icon={Clock} label="Créée le" value={formatDateTime(delivery.createdAt)} />
             </dl>
           </div>
+
+ 
 
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
             <h2 className="mb-3 flex items-center gap-2 font-display font-semibold text-ink-900">
