@@ -10,6 +10,7 @@ export interface Delivery {
   id: string; // e.g. DL-1042
   customerName: string;
   customerPhone: string;
+  customerEmmergencyPhone: string; 
   reference?: string;
   amount?: number;
   notes?: string;
