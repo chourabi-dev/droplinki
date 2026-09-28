@@ -17,21 +17,20 @@ export interface Delivery {
   shareUrl: string; // relative path e.g. /d/DL-1042
   customerLatitude?: number;
   customerLongitude?: number;
-  /**
-   * Static placeholder coordinates from the backend record. Kept for API
-   * compatibility only — the UI must NOT use these to show the driver's
-   * position. The driver's real position comes live from the browser's
-   * Geolocation API (see src/hooks/useLiveLocation.ts), since the driver is
-   * whoever is holding the device the app is running on.
-   */
-  driverLatitude: number;
-  driverLongitude: number;
+  opened: boolean;
+  driverLatitude?: number;
+  driverLongitude?: number;
   createdAt: string; // ISO
   linkSentAt?: string;
   linkOpenedAt?: string;
   locationReceivedAt?: string;
   completedAt?: string;
-  timeline: TimelineEvent[];
+  timeline: TimelineEvent[]; 
+  delegation:string;
+  delegationId:string;
+  gouvernorate: string;
+  gouvernorateId: string;
+  address:string;     
 }
 
 export interface Driver {
