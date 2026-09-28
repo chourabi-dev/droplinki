@@ -211,6 +211,15 @@ export const clientDeliveriesApi = {
 
   /** Downloads the printable delivery sheet (PDF) for one delivery. */
   downloadPdf: (id: string) => requestBlob(`/api/client/deliveries/${encodeURIComponent(id)}/pdf`),
+
+  /**
+   * Deletes a delivery. Only allowed while the delivery is still
+   * "waiting_location" (EN-ATT — no link opened / no position received yet).
+   * The backend must re-validate this rule server-side; the frontend also
+   * only ever shows the action for deliveries in that status (see
+   * ClientDeliveryCard / ClientDeliveryDetails).
+   */
+  remove: (id: string) => request<void>(`/api/client/deliveries/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, Users, ArrowRight, Loader2, AlertCircle, UploadCloud, PhoneCall } from "lucide-react";
+import { Plus, Package, Clock, CheckCircle2, Users, ArrowRight, Loader2, AlertCircle, UploadCloud, PhoneCall, PackageCheck, Truck, Undo2, ExternalLink } from "lucide-react";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
 import { useCompanyAuth } from "@/context/CompanyAuthContext";
@@ -85,6 +85,41 @@ export default function CompanyDashboard() {
           </Link>
         </div>
       )}
+
+      <div className="mt-9">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold text-ink-900">Stations de scan</h2>
+        </div>
+        <p className="mb-4 text-sm text-ink-500">
+          Écrans sans connexion, à ouvrir sur l'appareil branché au scanner laser de chaque poste. Scanner un colis y
+          déclenche automatiquement la mise à jour de son statut.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {company?.id &&
+            [
+              { to: `/company/${company.id}/station/depot`, label: "Colis en dépôt", icon: PackageCheck, tint: "bg-brand-50 text-brand-600" },
+              { to: `/company/${company.id}/station/loading`, label: "Chargement camion", icon: Truck, tint: "bg-go-50 text-go-600" },
+              { to: `/company/${company.id}/station/returns`, label: "Retours", icon: Undo2, tint: "bg-red-50 text-red-600" },
+            ].map((s) => (
+              <a
+                key={s.to}
+                href={s.to}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-center gap-3 rounded-2xl border border-ink-100 bg-white p-4 shadow-card transition-all hover:border-brand-200 hover:shadow-lift"
+              >
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${s.tint}`}>
+                  <s.icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-ink-900">{s.label}</p>
+                  <p className="truncate text-xs text-ink-500">Ouvrir sur le poste de scan</p>
+                </div>
+                <ExternalLink className="h-4 w-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-500" />
+              </a>
+            ))}
+        </div>
+      </div>
 
       <div className="mt-9">
         <div className="mb-4 flex items-center justify-between">

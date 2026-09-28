@@ -142,7 +142,7 @@ export default function CustomerClientTracking() {
                 {!!delivery.amount && (
                   <div className="flex justify-between">
                     <dt className="text-ink-500">À payer</dt>
-                    <dd className="font-medium text-ink-900">{formatAmount(delivery.amount)}</dd>
+                    <dd className="font-medium text-ink-900">{formatAmount(delivery.amount +  delivery.deliveryFees  )}</dd>
                   </div>
                 )}
               </dl>

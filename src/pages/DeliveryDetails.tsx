@@ -271,47 +271,7 @@ const hasLocation =
             </dl>
           </div>
 
-          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-            <h2 className="mb-3 font-display font-semibold text-ink-900">Lien client</h2>
-            <div className="flex items-center gap-2 rounded-xl border border-ink-200 bg-ink-50 px-3 py-2.5">
-              <p className="flex-1 truncate text-xs font-medium text-ink-700">{fullLink}</p>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard?.writeText(fullLink);
-                  showToast("Lien copié", "success");
-                }}
-              >
-                <Copy className="h-3.5 w-3.5" /> Copier
-              </Button>
-              <a href={whatsappUrl(delivery.customerPhone, message)} target="_blank" rel="noreferrer">
-                <Button size="sm" variant="success" fullWidth onClick={() => showToast("WhatsApp ouvert", "info")}>
-                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                </Button>
-              </a>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-            <h2 className="mb-4 font-display font-semibold text-ink-900">Historique</h2>
-            <ol className="space-y-4">
-              {delivery.timeline.map((event, i) => (
-                <li key={event.id} className="relative flex gap-3 pl-0.5">
-                  <div className="flex flex-col items-center">
-                    <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${i === delivery.timeline.length - 1 ? "bg-brand-600" : "bg-ink-300"}`} />
-                    {i !== delivery.timeline.length - 1 && <span className="w-px flex-1 bg-ink-200" />}
-                  </div>
-                  <div className="pb-1">
-                    <p className="text-sm font-medium text-ink-900">{event.label}</p>
-                    <p className="text-xs text-ink-500">{formatTime(event.timestamp)}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
+           
         </div>
       </div>
     </div>

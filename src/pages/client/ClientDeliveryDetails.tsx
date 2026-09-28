@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Copy, MessageCircle, Clock, Wallet, StickyNote, Phone, Loader2, MapPinned, Navigation, Link2, Package, Ruler, Scale } from "lucide-react";
+import { ArrowLeft, Copy, MessageCircle, Clock, Wallet, StickyNote, Phone, Loader2, MapPinned, Navigation, Link2, Package, Ruler, Scale, Trash2 } from "lucide-react";
 import { useClientDeliveries, clientDeliveryErrorMessage } from "@/context/ClientDeliveryContext";
 import { useToast } from "@/context/ToastContext";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -13,13 +13,15 @@ import { ClientDelivery, clientDeliveryRecipientFullName } from "@/types";
 export default function ClientDeliveryDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getDelivery, fetchDelivery } = useClientDeliveries();
+  const { getDelivery, fetchDelivery, removeDelivery } = useClientDeliveries();
   const { showToast } = useToast();
 
   const cached = id ? getDelivery(id) : undefined;
   const [delivery, setDelivery] = useState<ClientDelivery | undefined>(cached);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => setDelivery(cached), [cached]);
 
@@ -61,6 +63,24 @@ export default function ClientDeliveryDetails() {
   const hasLink = delivery.hasValidationLink && !!delivery.shareUrl;
   const fullLink = hasLink ? `${delivery.shareUrl}` : "";
   const message = `🚚 Une livraison est en route pour vous.\nOuvrez ce lien et partagez votre position :\n${fullLink}`;
+
+  // A delivery can only be deleted by the client while it's still EN-ATT
+  // (waiting_location) — once a link has been opened or a position received,
+  // it's already in motion and must stay in the history.
+  const canDelete = delivery.status === "waiting_location";
+
+  async function handleDelete() {
+    if (!delivery) return;
+    setDeleting(true);
+    try {
+      await removeDelivery(delivery.id);
+      showToast("Livraison supprimée", "success");
+      navigate("/client/deliveries");
+    } catch (err) {
+      showToast(clientDeliveryErrorMessage(err), "warning");
+      setDeleting(false);
+    }
+  }
 
   return (
     <div>
@@ -118,7 +138,7 @@ export default function ClientDeliveryDetails() {
               </Button>
             </a>
           )}
-        </div>
+        </div> 
 
         {/* Side info */}
         <div className="space-y-4">
@@ -179,6 +199,30 @@ export default function ClientDeliveryDetails() {
               <p className="text-sm text-ink-500">Aucun lien de validation n'a été généré pour cette livraison.</p>
             )}
           </div>
+
+          {canDelete && (
+            <div className="rounded-2xl border border-red-200 bg-red-50/40 p-5">
+              <h2 className="mb-2 font-display font-semibold text-ink-900">Zone de danger</h2>
+              <p className="mb-3 text-sm text-ink-500">
+                Vous pouvez supprimer cette livraison tant qu'elle est en attente (EN-ATT). Une fois le lien ouvert ou
+                la position reçue, la suppression n'est plus possible.
+              </p>
+              {confirmDelete ? (
+                <div className="flex gap-2">
+                  <Button variant="danger" fullWidth disabled={deleting} onClick={handleDelete}>
+                    {deleting ? "Suppression..." : "Confirmer la suppression"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                    Annuler
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="danger" onClick={() => setConfirmDelete(true)}>
+                  <Trash2 className="h-4 w-4" /> Supprimer cette livraison
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -9,9 +9,7 @@ import { cn } from "@/lib/utils";
 
 const FILTERS: { key: DeliveryStatus | "all"; label: string }[] = [
   { key: "all", label: "Toutes" },
-  { key: "waiting_location", label: "En attente" },
-  { key: "location_received", label: "Position reçue" },
-  { key: "delivered", label: "Livrées" },
+ 
 ];
 
 export default function Deliveries() {
@@ -21,16 +19,7 @@ export default function Deliveries() {
   const filtered = filter === "all" ? deliveries : deliveries.filter((d) => d.status === filter);
   const sorted = [...filtered].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  
-
-
-
-
-
-
-
-
-
+   
 
 
   return (
@@ -40,9 +29,7 @@ export default function Deliveries() {
           <h1 className="font-display text-2xl font-bold text-ink-950 sm:text-3xl">Livraisons</h1>
           <p className="mt-1 text-ink-500">{deliveries.length} livraison(s) au total.</p>
         </div>
-        <Link to="/create-delivery" className="hidden sm:block">
-          <Button><Plus className="h-4 w-4" /> Nouvelle livraison</Button>
-        </Link>
+        
       </div>
 
       <div className="mb-5 flex gap-2 overflow-x-auto pb-1 dl-scroll">
@@ -76,7 +63,7 @@ export default function Deliveries() {
             <Package className="h-6 w-6" />
           </div>
           <p className="font-display font-semibold text-ink-900">Aucune livraison dans cette catégorie</p>
-          <p className="mt-1 max-w-xs text-sm text-ink-500">Essayez un autre filtre ou créez une nouvelle livraison.</p>
+          <p className="mt-1 max-w-xs text-sm text-ink-500">Essayez un autre filtre.</p>
         </div>
       ) : (
         <div className="space-y-3">

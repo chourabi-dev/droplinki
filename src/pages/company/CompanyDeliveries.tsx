@@ -32,21 +32,20 @@ export default function CompanyDeliveries() {
       const q = query.trim().toLowerCase();
       list = list.filter(
         (d) =>
-          d.customerName.toLowerCase().includes(q) ||
-          d.customerPhone.toLowerCase().includes(q) ||
-          d.id.toLowerCase().includes(q) ||
-          (d.reference || "").toLowerCase().includes(q)
+          (d.recipientFirstName+''+d.recipientLastName).toLowerCase().includes(q) ||
+          d.recipientPhone1.toLowerCase().includes(q) ||
+          d.id.toLowerCase().includes(q) 
       );
     }
     return list;
   }, [deliveries, filter, query]);
 
   const filterChips: { key: FilterKey; label: string }[] = [
-    { key: "all", label: "Toutes" },
+    /*{ key: "all", label: "Toutes" },
     { key: "unassigned", label: "Non assignées" },
     { key: "waiting_location", label: STATUS_LABELS.waiting_location },
     { key: "location_received", label: STATUS_LABELS.location_received },
-    { key: "delivered", label: STATUS_LABELS.delivered },
+    { key: "delivered", label: STATUS_LABELS.delivered },*/
   ];
 
   return (
@@ -131,9 +130,10 @@ export default function CompanyDeliveries() {
               {filtered.map((d) => (
                 <tr key={d.id} className="cursor-pointer hover:bg-ink-50" onClick={() => navigate(`/company/deliveries/${d.id}`)}>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-ink-900">{d.customerName}</p>
+                    <p className="font-medium text-ink-900">{d.recipientFirstName} {d.recipientLastName}</p> 
+                    
                     <p className="text-xs text-ink-500">
-                      {d.id} {d.reference ? `· ${d.reference}` : ""}
+                      {d.id }
                     </p>
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">

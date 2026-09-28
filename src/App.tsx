@@ -48,6 +48,9 @@ import CompanyCreateDelivery from "@/pages/company/CompanyCreateDelivery";
 import CompanyImportDeliveries from "@/pages/company/CompanyImportDeliveries";
 import CompanyStats from "@/pages/company/CompanyStats";
 import CompanySettings from "@/pages/company/CompanySettings";
+import CompanyStationDepot from "@/pages/company/CompanyStationDepot";
+import CompanyStationLoading from "@/pages/company/CompanyStationLoading";
+import CompanyStationReturns from "@/pages/company/CompanyStationReturns";
 
 // --- Client / Expéditeur space -----------------------------------------
 // A third, entirely separate app mounted under /client/*, for shipper
@@ -105,6 +108,13 @@ export default function App() {
                         <Route path="/company" element={<CompanyLanding />} />
                         <Route path="/company/login" element={<CompanyLogin />} />
                         <Route path="/company/signup" element={<CompanySignup />} />
+
+                        {/* Warehouse scan stations — public, no auth, scoped to one companyId.
+                            Meant to run unattended on a fixed device next to a laser scanner. */}
+                        <Route path="/company/:companyId/station/depot" element={<CompanyStationDepot />} />
+                        <Route path="/company/:companyId/station/loading" element={<CompanyStationLoading />} />
+                        <Route path="/company/:companyId/station/returns" element={<CompanyStationReturns />} />
+
                         <Route element={<CompanyLayout />}>
                           <Route path="/company/dashboard" element={<CompanyDashboard />} />
                           <Route path="/company/drivers" element={<CompanyDrivers />} />

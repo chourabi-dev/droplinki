@@ -12,9 +12,12 @@ import {
   Phone,
   PhoneCall,
   Loader2,
-  MapPinned,
+  MapPinned,  
   User2,
   X,
+  Package,
+  Ruler,
+  Scale,
 } from "lucide-react";
 import { useCompanyDeliveries, companyDeliveryErrorMessage } from "@/context/CompanyDeliveryContext";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
@@ -24,7 +27,7 @@ import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
 import { formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
-import { CompanyDelivery, CALL_OUTCOME_LABELS, CallOutcome, companyDriverFullName } from "@/types";
+import { ClientDelivery, CALL_OUTCOME_LABELS, CallOutcome, companyDriverFullName } from "@/types";
 
 const OUTCOME_ORDER: CallOutcome[] = ["location_confirmed", "answered_no_location", "no_answer", "wrong_number"];
 
@@ -36,7 +39,7 @@ export default function CompanyDeliveryDetails() {
   const { showToast } = useToast();
 
   const cached = id ? getDelivery(id) : undefined;
-  const [delivery, setDelivery] = useState<CompanyDelivery | undefined>(cached);
+  const [delivery, setDelivery] = useState<ClientDelivery | undefined>(cached);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [confirmDeliver, setConfirmDeliver] = useState(false);
@@ -115,11 +118,11 @@ export default function CompanyDeliveryDetails() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="font-display text-2xl font-bold text-ink-950">{delivery.customerName}</h1>
+            <h1 className="font-display text-2xl font-bold text-ink-950">{delivery.recipientFirstName} {delivery.recipientLastName}</h1>
             <StatusBadge status={delivery.status} />
           </div>
           <p className="mt-1 text-sm text-ink-500">
-            {delivery.id} {delivery.reference && `· réf. ${delivery.reference}`} · créée à {formatTime(delivery.createdAt)}
+            {delivery.id} · créée à {formatTime(delivery.createdAt)}
           </p>
         </div>
       </div>
@@ -141,7 +144,7 @@ export default function CompanyDeliveryDetails() {
                     Le client n'a pas encore partagé sa position via le lien, ou vous ne l'avez pas encore appelé.
                   </p>
                   <div className="flex flex-wrap justify-center gap-2">
-                    <a href={whatsappUrl(delivery.customerPhone, message)} target="_blank" rel="noreferrer">
+                    <a href={whatsappUrl(delivery.recipientPhone1, message)} target="_blank" rel="noreferrer">
                       <Button size="sm" variant="outline">
                         <MessageCircle className="h-4 w-4" /> Relancer sur WhatsApp
                       </Button>
@@ -236,13 +239,29 @@ export default function CompanyDeliveryDetails() {
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
             <h2 className="mb-4 font-display font-semibold text-ink-900">Détails</h2>
             <dl className="space-y-3 text-sm">
-              <Row icon={Phone} label="Téléphone du client" value={delivery.customerPhone || "—"} />
-              <Row icon={Wallet} label="Montant à encaisser" value={formatAmount(delivery.amount)} />
+              <Row icon={Phone} label="Téléphone 1" value={delivery.recipientPhone1 || "—"} />
+              {delivery.recipientPhone2 && <Row icon={Phone} label="Téléphone 2" value={delivery.recipientPhone2} />}
+              <Row icon={MapPinned} label="Adresse" value={delivery.address} />
+              {(delivery.delegationName || delivery.governorateName) && (
+                <Row
+                  icon={MapPinned}
+                  label="Zone"
+                  value={[delivery.delegationName, delivery.governorateName].filter(Boolean).join(", ")}
+                />
+              )}
+              {delivery.helpText && <Row icon={StickyNote} label="Aide pour trouver" value={delivery.helpText} />}
+              {delivery.designation && <Row icon={Package} label="Désignation" value={delivery.designation} />}
+              {delivery.dimensions && <Row icon={Ruler} label="Dimensions" value={delivery.dimensions} />}
+              {delivery.weight !== undefined && <Row icon={Scale} label="Poids" value={`${delivery.weight} kg`} />}
+              {delivery.amount !== undefined && (
+                <Row icon={Wallet} label="Montant à encaisser (hors frais de livraison)" value={formatAmount(delivery.amount)} />
+              )}
               <Row icon={Clock} label="Créée le" value={formatDateTime(delivery.createdAt)} />
-              {delivery.address && <Row icon={MapPinned} label="Adresse indiquée" value={delivery.address} />}
-              {delivery.notes && <Row icon={StickyNote} label="Notes" value={delivery.notes} />}
             </dl>
           </div>
+
+
+          
 
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
             <h2 className="mb-3 flex items-center gap-2 font-display font-semibold text-ink-900">
@@ -278,7 +297,7 @@ export default function CompanyDeliveryDetails() {
               >
                 <Copy className="h-3.5 w-3.5" /> Copier
               </Button>
-              <a href={whatsappUrl(delivery.customerPhone, message)} target="_blank" rel="noreferrer">
+              <a href={whatsappUrl(delivery.recipientPhone1, message)} target="_blank" rel="noreferrer">
                 <Button size="sm" variant="success" fullWidth onClick={() => showToast("WhatsApp ouvert", "info")}>
                   <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                 </Button>
@@ -297,9 +316,9 @@ function CallPanel({
   onClose,
   onLogged,
 }: {
-  delivery: CompanyDelivery;
+  delivery: ClientDelivery;
   onClose: () => void;
-  onLogged: (updated: CompanyDelivery) => void;
+  onLogged: (updated: ClientDelivery) => void;
 }) {
   const { logCall } = useCompanyDeliveries();
   const { showToast } = useToast();
@@ -340,16 +359,16 @@ function CallPanel({
     <div className="rounded-2xl border border-brand-200 bg-brand-50/40 p-5 shadow-card">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 font-display font-semibold text-ink-900">
-          <PhoneCall className="h-4 w-4 text-brand-600" /> Appeler {delivery.customerName}
+          <PhoneCall className="h-4 w-4 text-brand-600" /> Appeler {delivery.recipientFirstName}
         </h2>
         <button onClick={onClose} className="rounded-lg p-1.5 text-ink-400 hover:bg-white" aria-label="Fermer">
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <a href={`tel:${delivery.customerPhone}`} className="mb-4 block">
+      <a href={`tel:${delivery.recipientPhone1}`} className="mb-4 block">
         <Button fullWidth variant="secondary">
-          <Phone className="h-4 w-4" /> Composer {delivery.customerPhone}
+          <Phone className="h-4 w-4" /> Composer {delivery.recipientPhone1}
         </Button>
       </a>
 

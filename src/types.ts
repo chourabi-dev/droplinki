@@ -1,4 +1,4 @@
-export type DeliveryStatus = "waiting_location" | "location_received" | "opened" | "delivered";
+export type DeliveryStatus ="EN-LIV" | "EN-DEP" | "EN-ATT" | "waiting_location" | "location_received" | "opened" | "delivered";
 
 export interface TimelineEvent {
   id: string;
@@ -47,7 +47,10 @@ export const STATUS_LABELS: Record<DeliveryStatus, string> = {
   waiting_location: "En attente de position",
   location_received: "Position reçue",
   delivered: "Livrée",
-  opened :"Lien ouvert"
+  opened :"Lien ouvert",
+  "EN-ATT": "en attente",
+  "EN-DEP": "au dépôt",
+  "EN-LIV": "en cours de livraison"
 };
 
 export const STATUS_COLORS: Record<DeliveryStatus, string> = {
@@ -55,6 +58,10 @@ export const STATUS_COLORS: Record<DeliveryStatus, string> = {
   location_received: "bg-go-50 text-go-600 ring-go-500/20",
   delivered: "bg-ink-100 text-ink-700 ring-ink-300",
   opened: "bg-blue-100 text-blue-700 ring-blue-500/30",
+  "EN-ATT": "bg-blue-100 text-blue-700 ring-blue-500/30",
+  "EN-DEP": "bg-warn-50 text-warn-600 ring-warn-500/20",
+  "EN-LIV": "bg-warn-50 text-warn-600 ring-warn-500/20",
+  
 };
 
 // ---------------------------------------------------------------------------
@@ -178,49 +185,7 @@ export interface CallAttempt {
 
 export type CompanyDeliverySource = "manual" | "csv_import";
 
-/**
- * A delivery owned by a company. Shares the same status lifecycle as the
- * driver-side Delivery, plus company-only fields: which internal driver it
- * is assigned to, how it was created, and the phone-call log used to
- * pin down the customer's location manually when they can't use the
- * self-service tracking link.
- */
-export interface CompanyDelivery {
-  id: string; // e.g. CD-1042
-  customerName: string;
-  customerPhone: string;
-  reference?: string;
-  amount?: number;
-  notes?: string;
-  address?: string;
-  status: DeliveryStatus;
-  shareUrl: string; // relative path e.g. /d/CD-1042 — same public tracking page as driver deliveries
-  customerLatitude?: number;
-  customerLongitude?: number;
-  assignedDriverId?: string;
-  source: CompanyDeliverySource;
-  callAttempts: CallAttempt[];
-  createdAt: string;
-  completedAt?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Client / Expéditeur space
-// ---------------------------------------------------------------------------
-// A "client" here is a shipper account (Expéditeur) that belongs to a
-// company's roster — created from the company dashboard, never self-signup.
-// The client then logs into their own mobile-first app (src/pages/client,
-// src/context/Client*Context.tsx, src/lib/clientApi.ts) to create deliveries
-// for their own end recipients and track them. It is additive to the models
-// above and does not change them.
-
-/**
- * The delivery company a client (shipper) belongs to, as embedded in
- * `GET /api/client/me`. Drives the delivery-creation form: the fee is shown
- * as an informational note (it is never added to the client's own amount
- * field), and the governorate/delegation the client can pick for a
- * recipient's address is restricted to what the company actually covers.
- */
+ 
 export interface ClientCompanyInfo {
   deliveryFees: number;
   availableGovernorates: Governorate[];
@@ -283,6 +248,7 @@ export interface ClientDelivery {
   designation: string;
   dimensions?: string;
   weight?: number;
+  deliveryFees: number;
   /** Amount to collect from the recipient (cash on delivery). Does not include the delivery fees. */
   amount?: number;
   status: DeliveryStatus;
@@ -297,6 +263,8 @@ export interface ClientDelivery {
   linkOpenedAt?: string;
   locationReceivedAt?: string;
   completedAt?: string;
+  assignedDriverId? : string;
+  callAttempts: CallAttempt[]
 }
 
 export function clientDeliveryRecipientFullName(d: Pick<ClientDelivery, "recipientFirstName" | "recipientLastName">): string {
@@ -333,4 +301,47 @@ export interface CompanyStats {
   avgTimeToLocationMinutes?: number;
   daily: CompanyStatsDailyPoint[];
   byDriver: CompanyDriverStat[];
+}
+
+// ---------------------------------------------------------------------------
+// Warehouse scan stations — unauthenticated, per-company screens
+// ---------------------------------------------------------------------------
+// Three "do nothing until a scan happens" screens, opened at the warehouse /
+// loading dock on a device plugged to a laser barcode scanner (which behaves
+// like a keyboard: it "types" the scanned code then sends Enter). Each
+// screen is reachable at /company/:companyId/station/{depot|loading|returns}
+// with no login — see src/hooks/useScannerCapture.ts and
+// src/components/company/ScannerStation.tsx. A scan hits a public
+// `/api/open/company/{companyId}/stations/...` endpoint (see
+// companyStationsApi in lib/companyApi.ts) which updates the matching
+// package/delivery status server-side.
+
+export type StationKind = "depot" | "loading" | "returns";
+
+/** What each station means for the scanned package, in French for the UI. */
+export const STATION_LABELS: Record<StationKind, string> = {
+  depot: "Colis en dépôt",
+  loading: "Chargement du camion",
+  returns: "Retours (colis abandonnés)",
+};
+
+export const STATION_DESCRIPTIONS: Record<StationKind, string> = {
+  depot: "Scannez chaque colis à son arrivée au dépôt.",
+  loading: "Scannez chaque colis au moment de son chargement dans le camion de livraison.",
+  returns: "Scannez chaque colis abandonné / retourné par le client.",
+};
+
+/** Public info about a company, safe to show on an unauthenticated screen. */
+export interface PublicCompanyInfo {
+  id: string;
+  name: string;
+}
+
+/** Result returned by the backend after a station scan updates a package. */
+export interface StationScanResult {
+  packageId: string;
+  station: StationKind;
+  /** Updated delivery status, when the backend maps this scan to one. */
+  status?: DeliveryStatus;
+  scannedAt: string; // ISO
 }

@@ -48,11 +48,7 @@ export default function Dashboard() {
           </h1>
           <p className="mt-1 text-ink-500">Voici un aperçu de votre activité.</p>
         </div>
-        <Link to="/create-delivery" className="hidden sm:block">
-          <Button>
-            <Plus className="h-4 w-4" /> Nouvelle livraison
-          </Button>
-        </Link>
+         
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

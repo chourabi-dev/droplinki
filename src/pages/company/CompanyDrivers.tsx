@@ -31,7 +31,7 @@ export default function CompanyDrivers() {
   const [showForm, setShowForm] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const activeCount = (driverId: string) => deliveries.filter((d) => d.assignedDriverId === driverId && d.status !== "delivered").length;
+  const activeCount = (driverId: string) => deliveries.filter((d) => d.assignedDriverId === driverId && d.status == "EN-LIV").length;
   const zoneNames = (ids: string[]) => zones.filter((z) => ids.includes(z.id)).map((z) => z.name);
 
   async function handleStatusChange(id: string, status: CompanyDriver["status"]) {

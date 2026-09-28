@@ -6,6 +6,10 @@ const DOT_COLORS: Record<DeliveryStatus, string> = {
   location_received: "bg-go-500",
   opened: "bg-ink-500",
   delivered: "bg-ink-500",
+  "EN-ATT":"bg-ink-500",
+  "EN-DEP":"bg-warn-500",
+  "EN-LIV":"bg-warn-500",
+  
 
 };
 
@@ -14,6 +18,10 @@ const BG_COLORS: Record<DeliveryStatus, string> = {
   location_received: "bg-go-50 text-go-600",
   delivered: "bg-ink-100 text-ink-700",
   opened: "bg-ink-100 text-ink-700",
+  "EN-ATT":"En attente",
+  "EN-DEP":"bg-warn-50 text-warn-600",
+  "EN-LIV":"bg-warn-50 text-warn-600",
+  
 };
 
 export function StatusBadge({ status, className }: { status: DeliveryStatus; className?: string }) {

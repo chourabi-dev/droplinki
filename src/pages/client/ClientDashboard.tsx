@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, Link2, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Package, Clock, CheckCircle2, Link2, ArrowRight, Loader2, AlertCircle, Truck, House } from "lucide-react";
 import { useClientDeliveries } from "@/context/ClientDeliveryContext";
 import { useClientAuth } from "@/context/ClientAuthContext";
 import { ClientDeliveryCard } from "@/components/client/ClientDeliveryCard";
@@ -16,15 +16,21 @@ export default function ClientDashboard() {
   const { client } = useClientAuth();
 
   const todayDeliveries = deliveries.filter((d) => isToday(d.createdAt));
-  const pending = deliveries.filter((d) => d.status !== "delivered");
-  const completed = deliveries.filter((d) => d.status === "delivered");
+  const pending = deliveries.filter((d) => d.status == "EN-ATT");
+  const inDelivery = deliveries.filter((d) => d.status == "EN-LIV");
+  const inDepo = deliveries.filter((d) => d.status == "EN-DEP");
+  
+  const completed = deliveries.filter((d) => d.status == "delivered");
  
 
   const stats = [
     { label: "Livraisons aujourd'hui", value: todayDeliveries.length, icon: Package, tint: "bg-brand-50 text-brand-600" },
-    { label: "En cours", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
-    { label: "Livrées", value: completed.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" },
-    //{ label: "Avec lien de suivi", value: withLink.length, icon: Link2, tint: "bg-ink-100 text-ink-700" },
+    { label: "En attente", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
+    { label: "En dépôt", value: pending.length, icon: House, tint: "bg-warn-50 text-warn-600" },
+    
+    { label: "Een cours de livraison", value: inDelivery.length, icon: Truck, tint: "bg-warn-50 text-warn-600" },
+    
+    { label: "Livrées", value: completed.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" } 
   ];
 
   const recent = [...deliveries].slice(0, 6);

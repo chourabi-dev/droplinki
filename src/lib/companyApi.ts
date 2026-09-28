@@ -10,6 +10,9 @@ import {
   DeliveryZone,
   VehicleType,
   Client,
+  StationKind,
+  StationScanResult,
+  PublicCompanyInfo,
 } from "@/types";
 import { ApiError, isNetworkError } from "@/lib/api";
 
@@ -336,4 +339,27 @@ export const companyDeliveriesApi = {
 export const companyStatsApi = {
   get: (rangeDays: number = 14) =>
     request<CompanyStats>(`/api/company/stats?range=${rangeDays}`, { method: "GET" }),
+};
+
+// ---------------------------------------------------------------------------
+// Warehouse scan stations — /api/open/company/{companyId}/stations
+// ---------------------------------------------------------------------------
+// Public (no auth), scoped strictly to the given companyId — mirrors the
+// "no auth, scoped to one id" contract already used for the customer-facing
+// /api/open/deliveries/* routes in lib/api.ts. Powers the three scan-only
+// screens (see src/pages/company/CompanyStation*.tsx): a laser scanner
+// "types" a package id into the page then sends Enter, which fires one of
+// the calls below.
+export const companyStationsApi = {
+  /** Public, minimal company info (name) to display on the unauthenticated screen. */
+  getPublicInfo: (companyId: string) =>
+    request<PublicCompanyInfo>(`/api/open/company/${encodeURIComponent(companyId)}`, { method: "GET", auth: false }),
+
+  /** Registers one scan at a given station for a package/delivery id. */
+  scan: (companyId: string, station: StationKind, packageId: string) =>
+    request<StationScanResult>(`/api/open/company/${encodeURIComponent(companyId)}/stations/${station}/scan`, {
+      method: "POST",
+      body: { packageId },
+      auth: false,
+    }),
 };

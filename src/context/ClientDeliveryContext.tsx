@@ -11,6 +11,8 @@ interface ClientDeliveryContextValue {
   getDelivery: (id: string) => ClientDelivery | undefined;
   fetchDelivery: (id: string) => Promise<ClientDelivery>;
   createDelivery: (input: CreateClientDeliveryInput) => Promise<ClientDelivery>;
+  /** Deletes a delivery still "waiting_location" (EN-ATT) and removes it locally. */
+  removeDelivery: (id: string) => Promise<void>;
 }
 
 const ClientDeliveryContext = createContext<ClientDeliveryContextValue | undefined>(undefined);
@@ -63,9 +65,14 @@ export function ClientDeliveryProvider({ children }: { children: React.ReactNode
     return delivery;
   }, []);
 
+  const removeDelivery = useCallback(async (id: string) => {
+    await clientDeliveriesApi.remove(id);
+    setDeliveries((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
   const value = useMemo(
-    () => ({ deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, createDelivery }),
-    [deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, createDelivery]
+    () => ({ deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, createDelivery, removeDelivery }),
+    [deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, createDelivery, removeDelivery]
   );
 
   return <ClientDeliveryContext.Provider value={value}>{children}</ClientDeliveryContext.Provider>;
