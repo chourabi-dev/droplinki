@@ -11,6 +11,7 @@ export interface Delivery {
   customerName: string;
   customerPhone: string;
   customerEmmergencyPhone: string; 
+  customerCheckURL:string;
   reference?: string;
   amount?: number;
   notes?: string;
