@@ -1,4 +1,4 @@
-export type DeliveryStatus ="CANCELED" | "EN-DEP-FAILD" | "EN-LIV" | "EN-DEP" | "EN-ATT" | "waiting_location" | "location_received" | "opened" | "delivered";
+export type DeliveryStatus ="CANCELED" | "EN-DEP-FAILD" | "EN-LIV" | "EN-DEP" | "EN-ATT" | "waiting_location" | "location_received" | "opened" | "delivered" | "delivered-payed";
 
 export interface TimelineEvent {
   id: string;
@@ -64,12 +64,16 @@ export const STATUS_LABELS: Record<DeliveryStatus, string> = {
   "EN-LIV": "En cours de livraison",
   "EN-DEP-FAILD": "En dépôt, échec de livraison",
   "CANCELED": "Annulée",
+  "delivered-payed": "livré et payé"
 };
 
 export const STATUS_COLORS: Record<DeliveryStatus, string> = {
   waiting_location: "bg-warn-50 text-warn-600 ring-warn-500/20",
   location_received: "bg-go-50 text-go-600 ring-go-500/20",
   delivered: "bg-warn-50 text-warn-600 ring-warn-500/20",
+  "delivered-payed": "bg-warn-50 text-warn-600 ring-warn-500/20",
+
+
   opened: "bg-blue-100 text-blue-700 ring-blue-500/30", 
   "EN-ATT": "bg-blue-100 text-blue-700 ring-blue-500/30",
   "EN-DEP": "bg-warn-50 text-warn-600 ring-warn-500/20",
