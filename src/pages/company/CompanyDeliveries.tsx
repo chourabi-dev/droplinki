@@ -56,11 +56,7 @@ export default function CompanyDeliveries() {
           <p className="mt-1 text-ink-500">{deliveries.length} livraison(s) au total.</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/company/deliveries/import">
-            <Button variant="outline">
-              <UploadCloud className="h-4 w-4" /> Importer un CSV
-            </Button>
-          </Link>
+          
           <Link to="/company/deliveries/new">
             <Button>
               <Plus className="h-4 w-4" /> Nouvelle livraison
@@ -134,6 +130,11 @@ export default function CompanyDeliveries() {
                     
                     <p className="text-xs text-ink-500">
                       {d.id }
+                      {(d.rescheduleCount ?? 0) > 0 && (
+                        <span className="ml-2 rounded-full bg-warn-50 px-1.5 py-0.5 text-[10px] font-semibold text-warn-600">
+                          {d.rescheduleCount}× reportée
+                        </span>
+                      )}
                     </p>
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">

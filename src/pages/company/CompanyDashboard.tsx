@@ -42,11 +42,7 @@ export default function CompanyDashboard() {
           <p className="mt-1 text-ink-500">Voici un aperçu de l'activité de votre entreprise.</p>
         </div>
         <div className="hidden gap-2 sm:flex">
-          <Link to="/company/deliveries/import">
-            <Button variant="outline">
-              <UploadCloud className="h-4 w-4" /> Importer un CSV
-            </Button>
-          </Link>
+           
           <Link to="/company/deliveries/new">
             <Button>
               <Plus className="h-4 w-4" /> Nouvelle livraison

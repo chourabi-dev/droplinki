@@ -1,4 +1,4 @@
-import { Building2, Mail, Phone, LogOut, ShieldCheck, Hash, MapPin } from "lucide-react";
+import { Building2, Mail, Phone, LogOut, ShieldCheck, Hash, MapPin, Undo2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCompanyAuth } from "@/context/CompanyAuthContext";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -50,6 +50,15 @@ export default function CompanySettings() {
               <div>
                 <dt className="text-xs text-ink-500">Siège social</dt>
                 <dd className="text-ink-900">{company?.headOfficeAddress}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Undo2 className="h-4 w-4 text-ink-400" />
+              <div>
+                <dt className="text-xs text-ink-500">Frais de retour (par colis annulé)</dt>
+                <dd className="text-ink-900">
+                  {company?.returnFees != null ? `${company.returnFees} DT` : "Non défini"}
+                </dd>
               </div>
             </div>
           </dl>

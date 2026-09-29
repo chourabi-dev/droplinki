@@ -3,6 +3,7 @@ import { CompanyDelivery, CsvImportRow, CallOutcome } from "@/types";
 import {
   companyDeliveriesApi,
   CreateCompanyDeliveryInput,
+  RelaunchDeliveryInput,
   ImportCsvResult,
   ApiError,
   isNetworkError,
@@ -21,6 +22,8 @@ interface CompanyDeliveryContextValue {
   assignDriver: (id: string, driverId: string | null) => Promise<void>;
   logCall: (id: string, input: { outcome: CallOutcome; note?: string; latitude?: number; longitude?: number }) => Promise<CompanyDelivery>;
   markDelivered: (id: string) => Promise<void>;
+  relaunchDelivery: (id: string, input: RelaunchDeliveryInput) => Promise<CompanyDelivery>;
+  cancelDelivery: (id: string, reason?: string) => Promise<CompanyDelivery>;
 }
 
 const CompanyDeliveryContext = createContext<CompanyDeliveryContextValue | undefined>(undefined);
@@ -100,6 +103,24 @@ export function CompanyDeliveryProvider({ children }: { children: React.ReactNod
     mergeDelivery(updated);
   }, [mergeDelivery]);
 
+  const relaunchDelivery = useCallback(
+    async (id: string, input: RelaunchDeliveryInput) => {
+      const updated = await companyDeliveriesApi.relaunch(id, input);
+      mergeDelivery(updated);
+      return updated;
+    },
+    [mergeDelivery]
+  );
+
+  const cancelDelivery = useCallback(
+    async (id: string, reason?: string) => {
+      const updated = await companyDeliveriesApi.cancel(id, { reason });
+      mergeDelivery(updated);
+      return updated;
+    },
+    [mergeDelivery]
+  );
+
   const value = useMemo(
     () => ({
       deliveries,
@@ -113,8 +134,10 @@ export function CompanyDeliveryProvider({ children }: { children: React.ReactNod
       assignDriver,
       logCall,
       markDelivered,
+      relaunchDelivery,
+      cancelDelivery,
     }),
-    [deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, createDelivery, importCsv, assignDriver, logCall, markDelivered]
+    [deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, createDelivery, importCsv, assignDriver, logCall, markDelivered, relaunchDelivery, cancelDelivery]
   );
 
   return <CompanyDeliveryContext.Provider value={value}>{children}</CompanyDeliveryContext.Provider>;

@@ -13,6 +13,8 @@ import {
   StationKind,
   StationScanResult,
   PublicCompanyInfo,
+  ClientPayoutPreview,
+  ClientPayout,
 } from "@/types";
 import { ApiError, isNetworkError } from "@/lib/api";
 
@@ -330,6 +332,53 @@ export const companyDeliveriesApi = {
 
   markDelivered: (id: string) =>
     request<CompanyDelivery>(`/api/company/deliveries/${encodeURIComponent(id)}/delivered`, { method: "PATCH" }),
+
+  /**
+   * Company staff decision on a package whose delivery failed (EN-DEP-FAILD):
+   * launch a new delivery attempt. Increments `rescheduleCount` server-side.
+   */
+  relaunch: (id: string, input: RelaunchDeliveryInput) =>
+    request<CompanyDelivery>(`/api/company/deliveries/${encodeURIComponent(id)}/relaunch`, {
+      method: "PATCH",
+      body: input,
+    }),
+
+  /** Company staff decision on a failed package: cancel for good (return fees will apply at payout). */
+  cancel: (id: string, input: { reason?: string } = {}) =>
+    request<CompanyDelivery>(`/api/company/deliveries/${encodeURIComponent(id)}/cancel`, {
+      method: "PATCH",
+      body: input,
+    }),
+};
+
+export interface RelaunchDeliveryInput {
+  /** ISO date/time of the new attempt. Optional: omitted = "as soon as possible". */
+  scheduledFor?: string;
+  note?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Client payouts — /api/company/payouts
+// ---------------------------------------------------------------------------
+// Pay a client (Expéditeur) for their delivered packages, minus the return
+// fees of their canceled ones. Packages already covered by a validated payout
+// are never returned by `preview`, and `validate` rejects (409) any package
+// that was settled in the meantime, so a client can never be paid twice.
+
+export const companyPayoutsApi = {
+  /** Unsettled delivered + canceled packages of a client, and the company's return fee. */
+  preview: (clientId: string) =>
+    request<ClientPayoutPreview>(`/api/company/payouts/preview?clientId=${encodeURIComponent(clientId)}`, {
+      method: "GET",
+    }),
+
+  /** Validates the payout and marks exactly these packages as settled. */
+  validate: (clientId: string, deliveryIds: string[]) =>
+    request<ClientPayout>("/api/company/payouts", { method: "POST", body: { clientId, deliveryIds } }),
+
+  /** Past validated payouts, newest first. */
+  history: (clientId: string) =>
+    request<ClientPayout[]>(`/api/company/payouts?clientId=${encodeURIComponent(clientId)}`, { method: "GET" }),
 };
 
 // ---------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import {
   WifiOff,
   Building2,
   MapPinned,
+  Banknote,
 } from "lucide-react";
 import { useCompanyAuth } from "@/context/CompanyAuthContext";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { to: "/company/deliveries", label: "Livraisons", icon: Package },
   { to: "/company/drivers", label: "Livreurs", icon: Users },
   { to: "/company/clients", label: "Clients", icon: Contact },
+  { to: "/company/payments", label: "Paiement clients", icon: Banknote },
   { to: "/company/delivery-zones", label: "Zones de livraison", icon: MapPinned },
   { to: "/company/stats", label: "Statistiques", icon: BarChart3 },
   { to: "/company/settings", label: "Paramètres", icon: Settings },

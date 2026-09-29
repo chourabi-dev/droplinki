@@ -18,6 +18,12 @@ import {
   Package,
   Ruler,
   Scale,
+  RotateCcw,
+  Ban,
+  CalendarClock,
+  Repeat,
+  AlertTriangle,
+  Banknote,
 } from "lucide-react";
 import { useCompanyDeliveries, companyDeliveryErrorMessage } from "@/context/CompanyDeliveryContext";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
@@ -25,7 +31,7 @@ import { useToast } from "@/context/ToastContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MapView } from "@/components/MapView";
 import { Button } from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
 import { formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
 import { ClientDelivery, CALL_OUTCOME_LABELS, CallOutcome, companyDriverFullName } from "@/types";
 
@@ -176,7 +182,7 @@ export default function CompanyDeliveryDetails() {
             <Button size="lg" variant="outline" onClick={() => setCallPanelOpen(true)}>
               <PhoneCall className="h-4.5 w-4.5" /> {hasLocation ? "Nouvel appel" : "Appeler le client"}
             </Button>
-            {delivery.status !== "delivered" && hasLocation && (
+            {delivery.status !== "delivered" && delivery.status !== "CANCELED" && delivery.status !== "EN-DEP-FAILD" && hasLocation && (
               <>
                 {confirmDeliver ? (
                   <div className="flex flex-1 gap-2">
@@ -196,6 +202,19 @@ export default function CompanyDeliveryDetails() {
             )}
           </div>
 
+          {delivery.status === "EN-DEP-FAILD" && (
+            <FailedDeliveryDecision delivery={delivery} onUpdated={setDelivery} />
+          )}
+
+          {delivery.status === "CANCELED" && (
+            <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <Ban className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                Cette livraison a été annulée définitivement. Les frais de retour seront déduits du prochain versement au client.
+              </p>
+            </div>
+          )}
+
           {callPanelOpen && (
             <CallPanel
               delivery={delivery}
@@ -213,7 +232,7 @@ export default function CompanyDeliveryDetails() {
             <h2 className="mb-4 flex items-center gap-2 font-display font-semibold text-ink-900">
               <PhoneCall className="h-4 w-4 text-ink-400" /> Historique des appels
             </h2>
-            {delivery.callAttempts.length === 0 ? (
+            {(delivery.callAttempts?.length ?? 0) === 0 ? (
               <p className="text-sm text-ink-500">Aucun appel enregistré pour cette livraison.</p>
             ) : (
               <ol className="space-y-4">
@@ -260,6 +279,47 @@ export default function CompanyDeliveryDetails() {
               <Row icon={Clock} label="Créée le" value={formatDateTime(delivery.createdAt)} />
             </dl>
           </div>
+
+          {/* Reschedule / failed-attempt history */}
+          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-display font-semibold text-ink-900">
+                <CalendarClock className="h-4 w-4 text-ink-400" /> Report &amp; reprogrammation
+              </h2>
+              {(delivery.rescheduleCount ?? 0) > 0 && (
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    (delivery.rescheduleCount ?? 0) >= 3 ? "bg-red-50 text-red-600" : "bg-warn-50 text-warn-600"
+                  }`}
+                >
+                  {delivery.rescheduleCount}× reportée
+                </span>
+              )}
+            </div>
+            <dl className="space-y-3 text-sm">
+              <Row
+                icon={CalendarClock}
+                label="Prochaine tentative prévue"
+                value={delivery.scheduledFor ? formatDateTime(delivery.scheduledFor) : "Non planifiée"}
+              />
+              <Row icon={Repeat} label="Nombre de reports" value={String(delivery.rescheduleCount ?? 0)} />
+              <Row
+                icon={AlertTriangle}
+                label="Motif du report / de l'échec"
+                value={delivery.rescheduleReason?.trim() || "Aucun motif renseigné"}
+              />
+            </dl>
+          </div>
+
+          {delivery.paidAt && (
+            <div className="flex items-start gap-3 rounded-2xl border border-go-500/20 bg-go-50 p-4 text-sm text-go-600">
+              <Banknote className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                Colis réglé au client le <strong>{formatDateTime(delivery.paidAt)}</strong>
+                {delivery.payoutId ? ` (versement ${delivery.payoutId})` : ""}.
+              </p>
+            </div>
+          )}
 
 
           
@@ -407,6 +467,119 @@ function CallPanel({
           {submitting ? "Enregistrement..." : "Enregistrer l'appel"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Shown when a package could not be delivered (status EN-DEP-FAILD, back at
+ * the depot). Company staff decide: launch a new delivery attempt or cancel
+ * for good (which triggers the return fees at the client's next payout).
+ */
+function FailedDeliveryDecision({
+  delivery,
+  onUpdated,
+}: {
+  delivery: ClientDelivery;
+  onUpdated: (d: ClientDelivery) => void;
+}) {
+  const { relaunchDelivery, cancelDelivery } = useCompanyDeliveries();
+  const { showToast } = useToast();
+  const [mode, setMode] = useState<"relaunch" | "cancel" | null>(null);
+  const [scheduledFor, setScheduledFor] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function handleRelaunch() {
+    setBusy(true);
+    try {
+      const updated = await relaunchDelivery(delivery.id, {
+        scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : undefined,
+        note: note.trim() || undefined,
+      });
+      onUpdated(updated);
+      showToast("Livraison relancée", "success");
+      setMode(null);
+    } catch (err) {
+      showToast(companyDeliveryErrorMessage(err), "warning");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCancel() {
+    setBusy(true);
+    try {
+      const updated = await cancelDelivery(delivery.id, note.trim() || undefined);
+      onUpdated(updated);
+      showToast("Livraison annulée définitivement", "success");
+      setMode(null);
+    } catch (err) {
+      showToast(companyDeliveryErrorMessage(err), "warning");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-red-200 bg-red-50/60 p-5 shadow-card">
+      <h2 className="flex items-center gap-2 font-display font-semibold text-ink-900">
+        <AlertTriangle className="h-4 w-4 text-red-500" /> Livraison échouée — décision requise
+      </h2>
+      <p className="mt-1 text-sm text-ink-600">
+        Le colis est de retour au dépôt
+        {(delivery.rescheduleCount ?? 0) > 0 ? ` après ${delivery.rescheduleCount} report(s)` : ""}.
+        {delivery.rescheduleReason ? ` Motif : « ${delivery.rescheduleReason} ».` : ""} Relancez une nouvelle tentative
+        ou annulez-le définitivement.
+      </p>
+
+      {mode === null && (
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Button className="flex-1" onClick={() => setMode("relaunch")}>
+            <RotateCcw className="h-4 w-4" /> Relancer la livraison
+          </Button>
+          <Button className="flex-1" variant="danger" onClick={() => setMode("cancel")}>
+            <Ban className="h-4 w-4" /> Annuler définitivement
+          </Button>
+        </div>
+      )}
+
+      {mode === "relaunch" && (
+        <div className="mt-4 space-y-3 rounded-xl bg-white p-4">
+          <Input
+            label="Nouvelle date de livraison (optionnel)"
+            type="datetime-local"
+            value={scheduledFor}
+            onChange={(e) => setScheduledFor(e.target.value)}
+          />
+          <Textarea label="Note (optionnel)" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+          <div className="flex gap-2">
+            <Button fullWidth disabled={busy} onClick={handleRelaunch}>
+              {busy ? "Relance..." : "Confirmer la relance"}
+            </Button>
+            <Button variant="ghost" disabled={busy} onClick={() => setMode(null)}>
+              Retour
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {mode === "cancel" && (
+        <div className="mt-4 space-y-3 rounded-xl bg-white p-4">
+          <p className="text-sm font-medium text-red-600">
+            Action définitive : le colis sera retourné au client et ses frais de retour seront déduits de son prochain versement.
+          </p>
+          <Textarea label="Motif (optionnel)" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+          <div className="flex gap-2">
+            <Button variant="danger" fullWidth disabled={busy} onClick={handleCancel}>
+              {busy ? "Annulation..." : "Confirmer l'annulation"}
+            </Button>
+            <Button variant="ghost" disabled={busy} onClick={() => setMode(null)}>
+              Retour
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Save, Trash2, Package, CheckCircle2, Phone, Mail, MapPin, AlertCircle, Contact, IdCard } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Trash2, Package, CheckCircle2, Phone, Mail, MapPin, AlertCircle, Contact, IdCard, Banknote } from "lucide-react";
 import { useCompanyClients, companyClientErrorMessage } from "@/context/CompanyClientContext";
 import { GovernorateDelegationPicker } from "@/components/company/GovernorateDelegationPicker";
 import { useToast } from "@/context/ToastContext";
@@ -160,6 +160,12 @@ export default function CompanyClientDetails() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-3">
+        <Link to={`/company/payments?clientId=${encodeURIComponent(client.id)}`}>
+          <Button variant="outline">
+            <Banknote className="h-4 w-4" /> Payer ce client
+          </Button>
+        </Link>
         <div className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-white px-4 py-3 shadow-card">
           <span className={`text-sm font-semibold ${isActive ? "text-go-600" : "text-ink-400"}`}>
             {isActive ? "Compte actif" : "Compte désactivé"}
@@ -180,6 +186,7 @@ export default function CompanyClientDetails() {
               }`}
             />
           </button>
+        </div>
         </div>
       </div>
 

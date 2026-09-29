@@ -93,6 +93,11 @@ export interface Company {
   taxId: string;
   /** Adresse du siège social. Obligatoire. */
   headOfficeAddress: string;
+  /**
+   * Frais de retour (DT) déduits du versement d'un client pour chaque colis
+   * annulé définitivement. Fourni par le backend dans les infos entreprise.
+   */
+  returnFees?: number;
   plan: "pro";
   emailVerified: boolean;
 }
@@ -219,6 +224,7 @@ export type CompanyDelivery = ClientDelivery & { customerName: string; customerP
  
 export interface ClientCompanyInfo {
   deliveryFees: number;
+  returnFees?: number;
   availableGovernorates: Governorate[];
   availableDelegations: Delegation[];
 }
@@ -295,7 +301,17 @@ export interface ClientDelivery {
   locationReceivedAt?: string;
   completedAt?: string;
   assignedDriverId? : string;
-  callAttempts: CallAttempt[]
+  callAttempts: CallAttempt[];
+  /** ISO — date de la prochaine tentative de livraison (après un échec / report). */
+  scheduledFor?: string;
+  /** Motif du dernier report / de l'échec de livraison. */
+  rescheduleReason?: string;
+  /** Nombre de fois où la livraison a été reportée / relancée. */
+  rescheduleCount?: number;
+  /** ISO — date à laquelle ce colis a été traité dans un versement client. Présent = déjà réglé. */
+  paidAt?: string;
+  /** Identifiant du versement client qui a traité ce colis. */
+  payoutId?: string;
 }
 
 export function clientDeliveryRecipientFullName(d: Pick<ClientDelivery, "recipientFirstName" | "recipientLastName">): string {
@@ -375,4 +391,48 @@ export interface StationScanResult {
   /** Updated delivery status, when the backend maps this scan to one. */
   status?: DeliveryStatus;
   scannedAt: string; // ISO
+}
+
+
+// ---------------------------------------------------------------------------
+// Client payouts (versements aux expéditeurs)
+// ---------------------------------------------------------------------------
+// The company pays each client for the packages that were delivered (the
+// cash collected, without delivery fees) and deducts the company's return
+// fees for every package that was canceled for good. Each package can be
+// settled only once: validating a payout stamps its packages server-side
+// (`paidAt` / `payoutId` on the delivery) so they never show up again.
+
+export type PayoutLineKind = "delivered" | "returned";
+
+export interface PayoutLine {
+  deliveryId: string;
+  recipientName: string;
+  kind: PayoutLineKind;
+  status: DeliveryStatus;
+  /** Cash collected for this package (DT). Only counted when kind = "delivered". */
+  amount: number;
+  /** Delivered / canceled date, ISO. */
+  date?: string;
+}
+
+/** Unsettled packages of one client, as returned by the backend before validation. */
+export interface ClientPayoutPreview {
+  client: Pick<Client, "id" | "firstName" | "lastName" | "phone" | "email">;
+  /** Frais de retour appliqués par colis annulé (DT), copied from the company info. */
+  returnFee: number;
+  lines: PayoutLine[];
+}
+
+/** A validated payout (receipt). */
+export interface ClientPayout {
+  id: string;
+  clientId: string;
+  createdAt: string;
+  deliveredCount: number;
+  returnedCount: number;
+  grossAmount: number;
+  returnFeesTotal: number;
+  netAmount: number;
+  deliveryIds: string[];
 }
