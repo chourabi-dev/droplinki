@@ -1,44 +1,101 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, UploadCloud, Search, Loader2, AlertCircle, Package, ChevronRight, User2 } from "lucide-react";
-import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
+import { companyDeliveriesApi } from "@/lib/companyApi";
+import { companyDeliveryErrorMessage } from "@/context/CompanyDeliveryContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { Pagination } from "@/components/ui/Pagination";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime, formatAmount, cn } from "@/lib/utils";
-import { DeliveryStatus, STATUS_LABELS, companyDriverFullName } from "@/types";
+import { CompanyDelivery, DeliveryStatus, PaginationMeta, STATUS_LABELS, companyDriverFullName } from "@/types";
 
 type FilterKey = "all" | "unassigned" | DeliveryStatus;
 
+const DEFAULT_LIMIT = 20;
+const PAGE_SIZES = [10, 20, 50, 100];
+
 export default function CompanyDeliveries() {
-  const { deliveries, isLoading, error } = useCompanyDeliveries();
   const { drivers } = useCompanyDrivers();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<FilterKey>((searchParams.get("filter") as FilterKey) || "all");
-  const [query, setQuery] = useState("");
+
+  // Pagination / filter / search state lives in the URL so that going to a
+  // delivery's details and pressing "back" lands on the same page.
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const requestedLimit = Number(searchParams.get("limit"));
+  const limit = PAGE_SIZES.includes(requestedLimit) ? requestedLimit : DEFAULT_LIMIT;
+  const filter = (searchParams.get("filter") as FilterKey) || "all";
+  const urlQuery = searchParams.get("q") ?? "";
+
+  const [query, setQuery] = useState(urlQuery);
+  const debouncedQuery = useDebouncedValue(query, 350);
+
+  const [items, setItems] = useState<CompanyDelivery[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // first load only
+  const [isFetching, setIsFetching] = useState(false); // any page change
+  const [error, setError] = useState<string | null>(null);
+
+  const updateParams = useCallback(
+    (patch: Record<string, string | number | null>, replace = false) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const [k, v] of Object.entries(patch)) {
+            if (v === null || v === "" || (k === "page" && Number(v) === 1) || (k === "limit" && Number(v) === DEFAULT_LIMIT)) next.delete(k);
+            else next.set(k, String(v));
+          }
+          return next;
+        },
+        { replace }
+      );
+    },
+    [setSearchParams]
+  );
+
+  // Debounced search box -> URL (and back to page 1).
+  useEffect(() => {
+    if (debouncedQuery.trim() !== urlQuery) updateParams({ q: debouncedQuery.trim(), page: 1 }, true);
+  }, [debouncedQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch the current page whenever the URL state changes.
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsFetching(true);
+    setError(null);
+    companyDeliveriesApi
+      .listPage({ page, limit, q: urlQuery, filter }, controller.signal)
+      .then((res) => {
+        // Page no longer exists (e.g. rows were removed): jump to the last one.
+        if (res.meta.totalPages > 0 && page > res.meta.totalPages) {
+          updateParams({ page: res.meta.totalPages }, true);
+          return;
+        }
+        setItems(res.items);
+        setMeta(res.meta);
+        setIsFetching(false);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return; // superseded by a newer request
+        setError(companyDeliveryErrorMessage(err));
+        setIsFetching(false);
+        setIsLoading(false);
+      });
+    return () => controller.abort();
+  }, [page, limit, urlQuery, filter, updateParams]);
 
   const driverName = (id?: string) => {
     const driver = id ? drivers.find((d) => d.id === id) : undefined;
     return driver ? companyDriverFullName(driver) : undefined;
   };
 
-  const filtered = useMemo(() => {
-    let list = deliveries;
-    if (filter === "unassigned") list = list.filter((d) => !d.assignedDriverId && d.status !== "delivered");
-    else if (filter !== "all") list = list.filter((d) => d.status === filter);
-
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      list = list.filter(
-        (d) =>
-          (d.recipientFirstName+''+d.recipientLastName).toLowerCase().includes(q) ||
-          d.recipientPhone1.toLowerCase().includes(q) ||
-          d.id.toLowerCase().includes(q) 
-      );
-    }
-    return list;
-  }, [deliveries, filter, query]);
+  const goToPage = (p: number) => {
+    updateParams({ page: p });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const filterChips: { key: FilterKey; label: string }[] = [
     /*{ key: "all", label: "Toutes" },
@@ -53,7 +110,9 @@ export default function CompanyDeliveries() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink-950 sm:text-3xl">Livraisons</h1>
-          <p className="mt-1 text-ink-500">{deliveries.length} livraison(s) au total.</p>
+          <p className="mt-1 text-ink-500">
+            {meta ? meta.total : "…"} livraison(s){filter !== "all" || urlQuery ? " correspondante(s)" : " au total"}.
+          </p>
         </div>
         <div className="flex gap-2">
           
@@ -70,7 +129,7 @@ export default function CompanyDeliveries() {
           {filterChips.map((chip) => (
             <button
               key={chip.key}
-              onClick={() => setFilter(chip.key)}
+              onClick={() => updateParams({ filter: chip.key === "all" ? null : chip.key, page: 1 })}
               className={cn(
                 "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
                 filter === chip.key ? "bg-ink-950 text-white" : "bg-ink-100 text-ink-600 hover:bg-ink-200"
@@ -101,7 +160,7 @@ export default function CompanyDeliveries() {
           <p className="font-display font-semibold text-ink-900">Impossible de charger les livraisons</p>
           <p className="mt-1 max-w-xs text-sm text-ink-500">{error}</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-dashed border-ink-200 bg-white px-6 py-14 text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
             <Package className="h-6 w-6" />
@@ -110,7 +169,8 @@ export default function CompanyDeliveries() {
           <p className="mt-1 max-w-xs text-sm text-ink-500">Essayez un autre filtre ou créez une nouvelle livraison.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card">
+        <>
+        <div className={cn("overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card transition-opacity", isFetching && "opacity-60")}>
           <table className="w-full text-left text-sm">
             <thead className="border-b border-ink-100 bg-ink-50 text-xs uppercase tracking-wide text-ink-500">
               <tr>
@@ -123,7 +183,7 @@ export default function CompanyDeliveries() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
-              {filtered.map((d) => (
+              {items.map((d) => (
                 <tr key={d.id} className="cursor-pointer hover:bg-ink-50" onClick={() => navigate(`/company/deliveries/${d.id}`)}>
                   <td className="px-4 py-3">
                     <p className="font-medium text-ink-900">{d.recipientFirstName} {d.recipientLastName}</p> 
@@ -159,6 +219,8 @@ export default function CompanyDeliveries() {
             </tbody>
           </table>
         </div>
+        {meta && <Pagination className="mt-4" meta={meta} disabled={isFetching} onPageChange={goToPage} onLimitChange={(l) => updateParams({ limit: l, page: 1 })} />}
+        </>
       )}
     </div>
   );

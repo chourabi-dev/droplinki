@@ -15,6 +15,7 @@ import {
   PublicCompanyInfo,
   ClientPayoutPreview,
   ClientPayout,
+  Paginated,
 } from "@/types";
 import { ApiError, isNetworkError } from "@/lib/api";
 
@@ -298,6 +299,15 @@ export interface ImportCsvResult {
   errors: { row: number; message: string }[];
 }
 
+export interface ListDeliveriesParams {
+  page?: number;
+  limit?: number;
+  /** Free-text search: recipient name, phone or delivery id. */
+  q?: string;
+  /** "all" | "unassigned" | a DeliveryStatus value. */
+  filter?: string;
+}
+
 export interface LogCallInput {
   outcome: CallOutcome;
   note?: string;
@@ -306,7 +316,22 @@ export interface LogCallInput {
 }
 
 export const companyDeliveriesApi = {
+  /**
+   * Full, unpaginated list (no `page` param → legacy backend behaviour).
+   * Only used by screens that aggregate over every delivery (dashboard,
+   * drivers). Prefer `listPage` for anything that renders a list.
+   */
   list: () => request<CompanyDelivery[]>("/api/company/deliveries", { method: "GET" }),
+
+  /** Server-side paginated + filtered list. */
+  listPage: (params: ListDeliveriesParams = {}, signal?: AbortSignal) => {
+    const qs = new URLSearchParams();
+    qs.set("page", String(params.page ?? 1));
+    qs.set("limit", String(params.limit ?? 20));
+    if (params.q?.trim()) qs.set("q", params.q.trim());
+    if (params.filter && params.filter !== "all") qs.set("filter", params.filter);
+    return request<Paginated<CompanyDelivery>>(`/api/company/deliveries?${qs.toString()}`, { method: "GET", signal });
+  },
 
   get: (id: string) => request<CompanyDelivery>(`/api/company/deliveries/${encodeURIComponent(id)}`, { method: "GET" }),
 

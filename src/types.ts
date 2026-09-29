@@ -250,6 +250,10 @@ export interface Client {
   createdAt: string;
   /** The company this client ships for, with its delivery fee and coverage area. */
   company?: ClientCompanyInfo;
+  deliveryFees: number;
+  returnFees: number;
+  taxRemovalPercentage:number;
+ 
 }
 
 export function clientFullName(c: Pick<Client, "firstName" | "lastName">): string {
@@ -435,4 +439,17 @@ export interface ClientPayout {
   returnFeesTotal: number;
   netAmount: number;
   deliveryIds: string[];
+}
+
+/** Pagination metadata returned by paginated list endpoints. */
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface Paginated<T> {
+  items: T[];
+  meta: PaginationMeta;
 }

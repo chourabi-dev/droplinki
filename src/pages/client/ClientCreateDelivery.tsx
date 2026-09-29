@@ -22,7 +22,7 @@ export default function ClientCreateDelivery() {
   const availableDelegations = client?.company?.availableDelegations ?? [];
  
 
-  const deliveryFees = client?.company?.deliveryFees;
+  const deliveryFees = client?.deliveryFees;
 
   const [recipientFirstName, setRecipientFirstName] = useState("");
   const [recipientLastName, setRecipientLastName] = useState("");
