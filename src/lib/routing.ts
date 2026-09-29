@@ -348,8 +348,15 @@ export function navTarget(d: Delivery): string | null {
 }
 
 export function navigateUrl(d: Delivery): string | null {
+  const p = exactPoint(d);
   const t = navTarget(d);
+
+  console.log("DELIVERY:", d.id);
+  console.log("EXACT POINT:", p);
+  console.log("NAV TARGET:", t);
+
   if (!t) return null;
+
   return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${encodeURIComponent(t)}`;
 }
 

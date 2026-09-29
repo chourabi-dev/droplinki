@@ -28,7 +28,7 @@ export default function ClientDashboard() {
     { label: "En attente", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
     { label: "En dépôt", value: pending.length, icon: House, tint: "bg-warn-50 text-warn-600" },
     
-    { label: "Een cours de livraison", value: inDelivery.length, icon: Truck, tint: "bg-warn-50 text-warn-600" },
+    { label: "En cours de livraison", value: inDelivery.length, icon: Truck, tint: "bg-warn-50 text-warn-600" },
     
     { label: "Livrées", value: completed.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" } 
   ];

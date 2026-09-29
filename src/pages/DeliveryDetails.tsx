@@ -295,8 +295,8 @@ export default function DeliveryDetails() {
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
             <h2 className="mb-4 font-display font-semibold text-ink-900">Contact</h2>
             <dl className="space-y-3 text-sm">
-              <PhoneRow label="Téléphone principal" number={phones.primary} />
-              {phones.secondary && <PhoneRow label="Téléphone secondaire" number={phones.secondary} />}
+              <PhoneRow label="Téléphone 1 (principal)" number={phones.primary} />
+              <PhoneRow label="Téléphone 2 (secondaire)" number={phones.secondary ?? ""} />
             </dl>
           </div>
 

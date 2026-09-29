@@ -83,7 +83,7 @@ export default function CompanyDeliveryDetails() {
   }
 
   const hasLocation = delivery.customerLatitude != null && delivery.customerLongitude != null;
-  const fullLink = `${window.location.origin}${delivery.shareUrl}`;
+  const fullLink = `${delivery.shareUrl}`;
   const message = `🚚 Votre livraison est en route.\nOuvrez ce lien et partagez votre position avec le livreur :\n${fullLink}`;
   const assignedDriver = drivers.find((d) => d.id === delivery.assignedDriverId);
 
@@ -206,6 +206,7 @@ export default function CompanyDeliveryDetails() {
               }}
             />
           )}
+          
 
           {/* Call log */}
           <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
@@ -331,20 +332,14 @@ function CallPanel({
   );
   const [submitting, setSubmitting] = useState(false);
 
-  const needsPin = outcome === "location_confirmed";
 
   async function handleSubmit() {
-    if (needsPin && !pin) {
-      showToast("Indiquez la position sur la carte avant de valider", "warning");
-      return;
-    }
+   
     setSubmitting(true);
     try {
       const updated = await logCall(delivery.id, {
         outcome,
-        note: note.trim() || undefined,
-        latitude: needsPin ? pin!.lat : undefined,
-        longitude: needsPin ? pin!.lon : undefined,
+        note: note.trim() || undefined
       });
       showToast("Appel enregistré", "success");
       onLogged(updated);
@@ -391,7 +386,7 @@ function CallPanel({
           </div>
         </div>
 
-        {needsPin && (
+        {/*needsPin && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-ink-700">
               Épinglez la position décrite par le client
@@ -403,7 +398,8 @@ function CallPanel({
               {pin ? `Position choisie : ${pin.lat.toFixed(4)}, ${pin.lon.toFixed(4)}` : "Touchez la carte à l'endroit décrit par le client."}
             </p>
           </div>
-        )}
+        )
+        */}
 
         <Textarea label="Note (optionnel)" placeholder="Ex. à côté de la pharmacie, portail bleu" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
 

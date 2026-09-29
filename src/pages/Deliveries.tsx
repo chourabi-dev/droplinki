@@ -22,7 +22,7 @@ export default function Deliveries() {
   const tabs: { key: Tab; label: string; list: Delivery[] }[] = [
     { key: "todo", label: "À faire", list: plan.stops.map((s) => s.delivery) },
     { key: "later", label: "Reportées", list: [...plan.later, ...plan.parked] },
-    { key: "load", label: "À charger", list: plan.notReady },
+    //{ key: "load", label: "À charger", list: plan.notReady },
     { key: "done", label: "Livrées", list: plan.done },
     { key: "all", label: "Toutes", list: deliveries },
   ];
@@ -31,7 +31,7 @@ export default function Deliveries() {
   const needle = q.trim().toLowerCase();
   const shown = needle
     ? current.list.filter((d) =>
-        [d.customerName, d.id, d.reference, d.address, d.delegation, d.customerPhone, d.customerEmmergencyPhone]
+        [d.customerName, d.id, d.reference, d.address, d.delegation, d.customerPhone, d.customerEmmergencyPhone, d.recipientPhone1, d.recipientPhone2]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(needle))
       )

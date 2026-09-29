@@ -118,8 +118,8 @@ export function CallAssistant({ delivery, onClose, onReschedule }: Props) {
 
   const secondaryAvailable = !!phones.secondary;
   const secondaryUntried = secondaryAvailable && !tried.includes("secondary");
-  const link = d.shareUrl ? `${window.location.origin}${d.shareUrl}` : "";
-  const waMessage = `Bonjour ${d.customerName}, je suis votre livreur DropLink. J'ai essayé de vous joindre pour votre livraison ${d.id}.${
+  const link = d.shareUrl ? `${d.shareUrl}` : "";
+  const waMessage = `Bonjour ${d.customerName}, je suis votre livreur. J'ai essayé de vous joindre pour votre livraison ${d.id}.${
     link ? `\nMerci de partager votre position ici : ${link}` : "\nMerci de me rappeler dès que possible."
   }`;
 

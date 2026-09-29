@@ -53,12 +53,61 @@ export interface DeliveryPhones {
 }
 
 /**
+ * Splits a raw phone field that may contain several numbers glued together
+ * ("20 123 456 / 98 765 432", "20123456,98765432", "20123456 et 98765432"...)
+ * into individual numbers. Without this, normalizePhone() would strip the
+ * separators and merge both numbers into a single, invalid one.
+ */
+export function splitPhones(raw?: string | null): string[] {
+  if (!raw) return [];
+  const parts = String(raw)
+    .split(/[\/,;|\n\r\u060C]+|\s+(?:-|–|—|et|ou|and|or)\s+/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const out: string[] = [];
+  for (const part of parts) {
+    const digits = part.replace(/\D/g, "");
+    // Two numbers written back to back without any separator.
+    if (digits.length === 16) {
+      out.push(digits.slice(0, 8), digits.slice(8));
+    } else if (digits.length === 22 && digits.startsWith("216") && digits.slice(11, 14) === "216") {
+      out.push(digits.slice(0, 11), digits.slice(11));
+    } else if (digits.length === 24 && digits.startsWith("00216") && digits.slice(12, 17) === "00216") {
+      out.push(digits.slice(0, 12), digits.slice(12));
+    } else {
+      out.push(part);
+    }
+  }
+  return out;
+}
+
+type PhoneSource = {
+  customerPhone?: string;
+  customerEmmergencyPhone?: string;
+  customerPhone2?: string;
+  recipientPhone1?: string;
+  recipientPhone2?: string;
+};
+
+/**
  * Primary number is always the one dialled first. The secondary number is
  * optional: it is dropped when empty, unusable, or identical to the primary.
+ * The two numbers are always kept separate (never merged into one).
  */
-export function getPhones(d: { customerPhone?: string; customerEmmergencyPhone?: string }): DeliveryPhones {
-  const primary = d.customerPhone?.trim() ?? "";
-  const sec = d.customerEmmergencyPhone?.trim() ?? "";
-  const secondary = sec && isDialable(sec) && normalizePhone(sec) !== normalizePhone(primary) ? sec : undefined;
-  return { primary, secondary };
+export function getPhones(d: PhoneSource): DeliveryPhones {
+  const candidates = [
+    ...splitPhones(d.customerPhone ?? d.recipientPhone1),
+    ...splitPhones(d.customerEmmergencyPhone ?? d.customerPhone2 ?? d.recipientPhone2),
+  ];
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const c of candidates) {
+    const n = normalizePhone(c);
+    if (!isDialable(c) || seen.has(n)) continue;
+    seen.add(n);
+    unique.push(c.trim());
+  }
+  // Keep an unusable-but-present primary so the UI can still display it.
+  const primary = unique[0] ?? (splitPhones(d.customerPhone ?? d.recipientPhone1)[0] ?? "").trim();
+  return { primary, secondary: unique.length > 1 ? unique[1] : undefined };
 }

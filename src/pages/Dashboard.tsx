@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Route as RouteIcon, Package, CheckCircle2, Wallet, Navigation, Phone, CalendarClock, ArrowRight, Loader2, AlertCircle, BellRing, MapPinOff, Sparkles, RefreshCw, Crosshair } from "lucide-react";
+import { Route as RouteIcon, Package, CheckCircle2, Wallet, Navigation, Phone, CalendarClock, ArrowRight, Loader2, AlertCircle, BellRing, MapPinOff, Sparkles, RefreshCw, Crosshair, Clock } from "lucide-react";
 import { useDeliveries } from "@/context/DeliveryContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePlanner } from "@/context/DriverPlannerContext";
@@ -11,21 +11,29 @@ import { formatDuration, formatKm, navigateUrl, scheduledMs } from "@/lib/routin
 import { formatAmount } from "@/lib/utils";
 
 export default function Dashboard() {
-  const { isLoading, error, refresh } = useDeliveries();
+  const { isLoading, error, refresh    } = useDeliveries();
   const { driver } = useAuth();
   const { plan, suggestions, driverLocation, locationError, geocodingPending, notificationPermission, enableNotifications, openReminders, deliveries } = usePlanner();
   const { callDelivery, rescheduleDelivery, sheets } = useDeliveryActions();
 
   const { best, alternatives } = suggestions;
-  const toCollect = plan.stops.reduce((sum, s) => sum + (s.delivery.amount ?? 0), 0);
+  const toCollect = deliveries.filter((d)=>d.status == "delivered").reduce((sum, s) => sum + (s.amount ?? 0), 0);
   const unlocated = plan.stops.filter((s) => s.precision === "none").length;
   const parkedCount = plan.later.length + plan.parked.length;
+
+
+  const reported = deliveries.filter((d)=>d.rescheduleCount != 0);
+  
+
 
   const stats = [
     { label: "Restantes", value: plan.stops.length, icon: Package, tint: "bg-brand-50 text-brand-600" },
     { label: "Livrées", value: plan.done.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" },
+    { label: "Reportées", value: reported.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
+    
     { label: "À encaisser", value: formatAmount(toCollect), icon: Wallet, tint: "bg-warn-50 text-warn-600" },
     { label: "Distance restante", value: formatKm(plan.totalKm), icon: RouteIcon, tint: "bg-ink-100 text-ink-700" },
+
   ];
 
   return (
