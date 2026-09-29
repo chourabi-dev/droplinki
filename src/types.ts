@@ -1,4 +1,4 @@
-export type DeliveryStatus ="EN-DEP-FAILD" | "EN-LIV" | "EN-DEP" | "EN-ATT" | "waiting_location" | "location_received" | "opened" | "delivered";
+export type DeliveryStatus ="CANCELED" | "EN-DEP-FAILD" | "EN-LIV" | "EN-DEP" | "EN-ATT" | "waiting_location" | "location_received" | "opened" | "delivered";
 
 export interface TimelineEvent {
   id: string;
@@ -58,25 +58,25 @@ export const STATUS_LABELS: Record<DeliveryStatus, string> = {
   waiting_location: "En attente de position",
   location_received: "Position reçue",
   delivered: "Livrée",
-  opened :"Lien ouvert",
-  "EN-ATT": "en attente",
-  "EN-DEP": "en dépôt",
-  "EN-LIV": "en cours de livraison",
-  "EN-DEP-FAILD": "En dépôt, Échec de livraison"
+  opened: "Lien ouvert", 
+  "EN-ATT": "En attente",
+  "EN-DEP": "En dépôt",
+  "EN-LIV": "En cours de livraison",
+  "EN-DEP-FAILD": "En dépôt, échec de livraison",
+  "CANCELED": "Annulée",
 };
 
 export const STATUS_COLORS: Record<DeliveryStatus, string> = {
   waiting_location: "bg-warn-50 text-warn-600 ring-warn-500/20",
   location_received: "bg-go-50 text-go-600 ring-go-500/20",
   delivered: "bg-warn-50 text-warn-600 ring-warn-500/20",
-  opened: "bg-blue-100 text-blue-700 ring-blue-500/30",
+  opened: "bg-blue-100 text-blue-700 ring-blue-500/30", 
   "EN-ATT": "bg-blue-100 text-blue-700 ring-blue-500/30",
   "EN-DEP": "bg-warn-50 text-warn-600 ring-warn-500/20",
   "EN-LIV": "bg-ink-100 text-ink-700 ring-ink-300",
-  "EN-DEP-FAILD": "bg-red-50 text-red-600 ring-red-500/20"
-  
+  "EN-DEP-FAILD": "bg-red-50 text-red-600 ring-red-500/20", 
+  "CANCELED": "bg-gray-100 text-gray-600 ring-gray-500/20",
 };
-
 // ---------------------------------------------------------------------------
 // Company / Pro space
 // ---------------------------------------------------------------------------

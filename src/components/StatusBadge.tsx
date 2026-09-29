@@ -10,6 +10,7 @@ const DOT_COLORS: Record<DeliveryStatus, string> = {
   "EN-DEP": "bg-warn-500",
   "EN-LIV": "bg-ink-500",
   "EN-DEP-FAILD": "bg-red-500",
+  "CANCELED": "bg-red-500",
 };
 
 const BG_COLORS: Record<DeliveryStatus, string> = {
@@ -21,6 +22,7 @@ const BG_COLORS: Record<DeliveryStatus, string> = {
   "EN-DEP": "bg-warn-50 text-warn-600",
   "EN-LIV": "bg-ink-100 text-ink-700",
   "EN-DEP-FAILD": "bg-red-50 text-red-600",
+  "CANCELED": "bg-red-50 text-red-600",
 };
 
 export function StatusBadge({ status, className }: { status: DeliveryStatus; className?: string }) {
