@@ -1,7 +1,8 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { MapPin, LayoutGrid, Package, User, Plus, LogOut, Menu, X, Map as MapIcon } from "lucide-react";
+import { LayoutGrid, Package, User, LogOut, Menu, X, Map as MapIcon, Route as RouteIcon, Bell } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { usePlanner } from "@/context/DriverPlannerContext";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
 import cebs from "@/assets/cebs-dark.png";
@@ -10,6 +11,7 @@ import cebs from "@/assets/cebs-dark.png";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Tableau de bord", icon: LayoutGrid },
+  { to: "/route", label: "Tournée", icon: RouteIcon },
   { to: "/deliveries", label: "Livraisons", icon: Package },
   { to: "/map", label: "Carte", icon: MapIcon },
   { to: "/profile", label: "Profil", icon: User },
@@ -18,6 +20,7 @@ const NAV_ITEMS = [
 export function AppHeader() {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { ringingReminders } = usePlanner();
   const [open, setOpen] = useState(false);
 
   return (
@@ -46,6 +49,7 @@ export function AppHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <BellLink count={ringingReminders.length} />
           <button
             onClick={() => {
               logout();
@@ -58,9 +62,12 @@ export function AppHeader() {
            
         </div>
 
-        <button className="p-2 md:hidden" onClick={() => setOpen((v) => !v)} aria-label="Menu">
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          <BellLink count={ringingReminders.length} />
+          <button className="p-2" onClick={() => setOpen((v) => !v)} aria-label="Menu">
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -94,5 +101,18 @@ export function AppHeader() {
         </div>
       )}
     </header>
+  );
+}
+
+function BellLink({ count }: { count: number }) {
+  return (
+    <NavLink to="/reminders" className="relative rounded-xl p-2 text-ink-600 hover:bg-ink-50" aria-label="Rappels">
+      <Bell className="h-5 w-5" />
+      {count > 0 && (
+        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warn-500 px-1 text-[10px] font-bold text-white">
+          {count}
+        </span>
+      )}
+    </NavLink>
   );
 }

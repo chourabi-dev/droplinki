@@ -12,7 +12,8 @@ import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Deliveries from "@/pages/Deliveries";
 import DeliveryDetails from "@/pages/DeliveryDetails";
-import CreateDelivery from "@/pages/CreateDelivery";
+import RoutePage from "@/pages/Route";
+import Reminders from "@/pages/Reminders";
 import DeliveriesMap from "@/pages/DeliveriesMap";
 import Profile from "@/pages/Profile";
 import CustomerTracking from "@/pages/CustomerTracking";
@@ -99,7 +100,8 @@ export default function App() {
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/deliveries" element={<Deliveries />} />
                           <Route path="/deliveries/:id" element={<DeliveryDetails />} />
-                          <Route path="/create-delivery" element={<CreateDelivery />} />
+                          <Route path="/route" element={<RoutePage />} />
+                          <Route path="/reminders" element={<Reminders />} />
                           <Route path="/map" element={<DeliveriesMap />} />
                           <Route path="/profile" element={<Profile />} />
                         </Route>

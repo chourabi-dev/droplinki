@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { Delivery } from "@/types";
-import { deliveriesApi, CreateDeliveryInput, ApiError, isNetworkError } from "@/lib/api";
+import { deliveriesApi, ApiError, isNetworkError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import Pusher from "pusher-js";
- 
+
+/**
+ * The driver's assigned deliveries. Read-only from the driver's point of
+ * view: companies create and assign deliveries, drivers execute them.
+ */
 interface DeliveryContextValue {
   deliveries: Delivery[];
   isLoading: boolean;
@@ -11,11 +15,15 @@ interface DeliveryContextValue {
   refresh: () => Promise<void>;
   getDelivery: (id: string) => Delivery | undefined;
   fetchDelivery: (id: string) => Promise<Delivery>;
-  createDelivery: (input: CreateDeliveryInput) => Promise<Delivery>;
+  /** Merge a delivery returned by the API (call log, reschedule...) into local state. */
+  updateDelivery: (delivery: Delivery) => void;
   markDelivered: (id: string) => Promise<void>;
 }
 
 const DeliveryContext = createContext<DeliveryContextValue | undefined>(undefined);
+
+const PUSHER_KEY = (import.meta.env.VITE_PUSHER_KEY as string) || "e43e09207961f9d8d94e";
+const PUSHER_CLUSTER = (import.meta.env.VITE_PUSHER_CLUSTER as string) || "ap2";
 
 export function DeliveryProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, driver } = useAuth();
@@ -23,45 +31,12 @@ export function DeliveryProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /** Merges a delivery received in real time (Pusher) into local state. */
   const mergeDelivery = useCallback((delivery: Delivery) => {
     setDeliveries((prev) => {
       const exists = prev.some((d) => d.id === delivery.id);
       return exists ? prev.map((d) => (d.id === delivery.id ? delivery : d)) : [delivery, ...prev];
     });
   }, []);
-
-  // Realtime updates: as soon as the customer opens the tracking link or
-  // shares their position, the backend broadcasts the updated delivery on
-  // the driver's private Pusher channel. Both the deliveries list and the
-  // delivery details page read from this same context, so merging here
-  // auto-refreshes both UIs without any polling.
-
-   useEffect(() => {
-      if(driver != null){
-          // we need to subscribe to this delevery id
-    
-        const pusher = new Pusher (
-            "e43e09207961f9d8d94e",
-            {
-                cluster: "ap2",
-                forceTLS: true,
-            }
-        );
-        const driverChannelID = `driver-${driver.email}`
- 
-        const channel = pusher.subscribe(driverChannelID);
-    
-        channel.bind("DELIVERIES-UPDATES", (data:any) => {
-            
-          refresh();
-            
-        });
-    
-      
-      
-      }
-    },[]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -76,14 +51,31 @@ export function DeliveryProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Fetch the driver's deliveries from the backend once authenticated.
+  // Initial load once authenticated.
   useEffect(() => {
-    if (isAuthenticated) {
-      refresh();
-    } else {
-      setDeliveries([]);
-    }
+    if (isAuthenticated) refresh();
+    else setDeliveries([]);
   }, [isAuthenticated, refresh]);
+
+  // Realtime: the backend pings the driver's private channel whenever the
+  // company assigns / changes a delivery or a customer shares their position.
+  // (Previously this effect ran once with `[]` deps, i.e. BEFORE the driver
+  // was loaded, so it never subscribed, and it never cleaned up.)
+  const driverEmail = driver?.email;
+  useEffect(() => {
+    if (!driverEmail) return;
+    const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER, forceTLS: true });
+    const channelName = `driver-${driverEmail}`;
+    const channel = pusher.subscribe(channelName);
+    channel.bind("DELIVERIES-UPDATES", () => {
+      void refresh();
+    });
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(channelName);
+      pusher.disconnect();
+    };
+  }, [driverEmail, refresh]);
 
   const getDelivery = useCallback((id: string) => deliveries.find((d) => d.id === id), [deliveries]);
 
@@ -95,12 +87,6 @@ export function DeliveryProvider({ children }: { children: React.ReactNode }) {
     },
     [mergeDelivery]
   );
-
-  const createDelivery = useCallback(async (input: CreateDeliveryInput) => {
-    const delivery = await deliveriesApi.create(input);
-    setDeliveries((prev) => [delivery, ...prev]);
-    return delivery;
-  }, []);
 
   const markDelivered = useCallback(async (id: string) => {
     const updated = await deliveriesApi.markDelivered(id);
@@ -115,10 +101,10 @@ export function DeliveryProvider({ children }: { children: React.ReactNode }) {
       refresh,
       getDelivery,
       fetchDelivery,
-      createDelivery,
+      updateDelivery: mergeDelivery,
       markDelivered,
     }),
-    [deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, createDelivery, markDelivered]
+    [deliveries, isLoading, error, refresh, getDelivery, fetchDelivery, mergeDelivery, markDelivered]
   );
 
   return <DeliveryContext.Provider value={value}>{children}</DeliveryContext.Provider>;

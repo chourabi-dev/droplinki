@@ -4,6 +4,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { AppHeader } from "./AppHeader";
 import { MobileTabBar } from "./MobileTabBar";
+import { ReminderBanner } from "./ReminderBanner";
+import { DriverPlannerProvider } from "@/context/DriverPlannerContext";
 
 
 export function AppLayout() {
@@ -37,13 +39,17 @@ export function AppLayout() {
     return <Navigate to="/login" replace />;
   }
 
+  // The planner (GPS watch, route, reminders) only runs for a signed-in driver.
   return (
-    <div className="min-h-screen bg-ink-50">
-      <AppHeader />
-      <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 sm:pb-10">
-        <Outlet />
-      </main>
-      <MobileTabBar />
-    </div>
+    <DriverPlannerProvider>
+      <div className="min-h-screen bg-ink-50">
+        <AppHeader />
+        <ReminderBanner />
+        <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10">
+          <Outlet />
+        </main>
+        <MobileTabBar />
+      </div>
+    </DriverPlannerProvider>
   );
 }

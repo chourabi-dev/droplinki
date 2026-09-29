@@ -10,7 +10,8 @@ export interface Delivery {
   id: string; // e.g. DL-1042
   customerName: string;
   customerPhone: string;
-  customerEmmergencyPhone: string; 
+  /** Optional secondary phone number (kept with the backend's spelling). Empty / missing = none. */
+  customerEmmergencyPhone?: string;
   customerCheckURL:string;
   reference?: string;
   amount?: number;
@@ -32,7 +33,18 @@ export interface Delivery {
   delegationId:string;
   gouvernorate: string;
   gouvernorateId: string;
-  address:string;     
+  address:string;
+  designation: string;
+  /**
+   * Set when the customer could not be there and the delivery was pushed to a
+   * later slot (ISO). While it is in the future the delivery is "parked" and
+   * left out of today's route until it becomes due.
+   */
+  scheduledFor?: string;
+  rescheduleReason?: string;
+  rescheduleCount?: number;
+  /** Phone calls made by the driver / company to reach the customer. */
+  callAttempts?: CallAttempt[];
 }
 
 export interface Driver {
@@ -166,25 +178,43 @@ export function companyDriverFullName(d: Pick<CompanyDriver, "firstName" | "last
   return `${d.firstName} ${d.lastName}`.trim();
 }
 
-export type CallOutcome = "no_answer" | "answered_no_location" | "location_confirmed" | "wrong_number";
+export type CallOutcome =
+  | "no_answer"
+  | "answered_no_location"
+  | "location_confirmed"
+  | "wrong_number"
+  | "reschedule_requested";
 
 export const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = {
   no_answer: "Pas de réponse",
   answered_no_location: "Répondu, position à confirmer",
   location_confirmed: "Position confirmée",
   wrong_number: "Numéro erroné",
+  reschedule_requested: "Client demande un report",
 };
 
 export interface CallAttempt {
   id: string;
   timestamp: string; // ISO
   outcome: CallOutcome;
+  /** Which number was dialled. Missing on legacy company-side entries. */
+  phoneUsed?: "primary" | "secondary";
   note?: string;
   latitude?: number;
   longitude?: number;
 }
 
 export type CompanyDeliverySource = "manual" | "csv_import";
+
+/**
+ * COMPATIBILITY SHIM — not part of the driver rebuild.
+ * The company screens import `CompanyDelivery`, but it had been deleted from
+ * this file on `main` (which broke `tsc -b`). Those screens use BOTH the new
+ * ClientDelivery fields (recipientPhone1, callAttempts...) and the legacy
+ * `customerName` / `customerPhone`, so it is modelled as the union of the two.
+ * Clean this up when the company side is migrated to a single delivery model.
+ */
+export type CompanyDelivery = ClientDelivery & { customerName: string; customerPhone: string };
 
  
 export interface ClientCompanyInfo {

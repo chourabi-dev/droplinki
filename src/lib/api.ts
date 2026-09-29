@@ -1,4 +1,4 @@
-import { Delivery, Driver } from "@/types";
+import { CallOutcome, Delivery, Driver } from "@/types";
 
 /**
  * Base URL of the Symfony backend. Configure with VITE_API_BASE_URL in .env.
@@ -164,21 +164,39 @@ export const authApi = {
 // Deliveries
 // ---------------------------------------------------------------------------
 
-export interface CreateDeliveryInput {
-  customerName: string;
-  customerPhone: string;
-  reference?: string;
-  amount?: number;
-  notes?: string;
+export interface LogCallInput {
+  outcome: CallOutcome;
+  /** Which number was dialled: the primary one, or the optional secondary one. */
+  phoneUsed: "primary" | "secondary";
+  note?: string;
+  /** ISO time the driver placed the call (client clock, so offline retries keep the real time). */
+  timestamp?: string;
 }
 
+export interface RescheduleInput {
+  /** New slot, ISO 8601. */
+  scheduledFor: string;
+  reason: string;
+  note?: string;
+}
+
+/**
+ * Drivers no longer create deliveries: companies create them and assign them
+ * to a driver. The driver app only reads its assigned deliveries and reports
+ * what happens on the road (calls, reschedules, delivered, position).
+ */
 export const deliveriesApi = {
   list: () => request<Delivery[]>("/api/deliveries", { method: "GET" }),
 
   get: (id: string) => request<Delivery>(`/api/deliveries/${encodeURIComponent(id)}`, { method: "GET" }),
 
-  create: (input: CreateDeliveryInput) =>
-    request<Delivery>("/api/deliveries", { method: "POST", body: input }),
+  /** Logs a call made from the driver app (primary / optional secondary number). */
+  logCall: (id: string, input: LogCallInput) =>
+    request<Delivery>(`/api/deliveries/${encodeURIComponent(id)}/call`, { method: "POST", body: input }),
+
+  /** The customer can't be there: push the delivery to a later slot. */
+  reschedule: (id: string, input: RescheduleInput) =>
+    request<Delivery>(`/api/deliveries/${encodeURIComponent(id)}/reschedule`, { method: "POST", body: input }),
 
   markDelivered: (id: string) =>
     request<Delivery>(`/api/deliveries/${encodeURIComponent(id)}/delivered`, { method: "PATCH" }),

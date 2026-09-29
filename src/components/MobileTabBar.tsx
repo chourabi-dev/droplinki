@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutGrid, Package, Plus, User, Map as MapIcon } from "lucide-react";
+import { LayoutGrid, Package, User, Map as MapIcon, Route as RouteIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MobileTabBar() {
@@ -8,14 +8,16 @@ export function MobileTabBar() {
       <div className="mx-auto flex max-w-6xl items-center justify-around px-2 py-2">
         <TabLink to="/dashboard" icon={LayoutGrid} label="Accueil" />
         <TabLink to="/deliveries" icon={Package} label="Livraisons" />
+        {/* Drivers no longer create deliveries: the centre button is now the route. */}
         <NavLink
-          to="/create-delivery"
+          to="/route"
+          aria-label="Ma tournée"
           className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lift active:scale-95"
         >
-          <Plus className="h-6 w-6" />
+          <RouteIcon className="h-6 w-6" />
         </NavLink>
-        <TabLink to="/profile" icon={User} label="Profil" />
         <TabLink to="/map" icon={MapIcon} label="Carte" />
+        <TabLink to="/profile" icon={User} label="Profil" />
       </div>
     </nav>
   );
