@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, Link2, ArrowRight, Loader2, AlertCircle, Truck, House, DollarSign, Cross, CircleX } from "lucide-react";
+import { Plus, Package, Clock, CheckCircle2, Link2, ArrowRight, Loader2, AlertCircle, Truck, House, DollarSign, Cross, CircleX, Check } from "lucide-react";
 import { useClientDeliveries } from "@/context/ClientDeliveryContext";
 import { useClientAuth } from "@/context/ClientAuthContext";
 import { ClientDeliveryCard } from "@/components/client/ClientDeliveryCard";
@@ -19,10 +19,14 @@ export default function ClientDashboard() {
   const pending = deliveries.filter((d) => d.status == "EN-ATT");
   const inDelivery = deliveries.filter((d) => d.status == "EN-LIV");
   const inDepo = deliveries.filter((d) => d.status == "EN-DEP");
-    const canceled = deliveries.filter((d) => d.status == "EN-DEP");
+  
+  const canceled = deliveries.filter((d) => d.status == "CANCELED");
   
   const completed = deliveries.filter((d) => d.status == "delivered");
+
+  const completedPayed = deliveries.filter((d) => d.status == "delivered-payed");
  
+  
 
   const stats = [
     { label: "Livraisons aujourd'hui", value: todayDeliveries.length, icon: Package, tint: "bg-brand-50 text-brand-600" },
@@ -34,7 +38,10 @@ export default function ClientDashboard() {
     { label: "En cours de livraison", value: inDelivery.length, icon: Truck, tint: "bg-warn-50 text-warn-600" },
     
     { label: "Livrées", value: completed.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" } ,
-    { label: "Livrées non payer", value: completed.length, icon: DollarSign , tint: "bg-go-50 text-go-600" } 
+ 
+    { label: "Colis livrés payés", value: completedPayed.length, icon: DollarSign , tint: "bg-go-50 text-go-600" } 
+    
+
   ];
 
   const recent = [...deliveries].slice(0, 6);

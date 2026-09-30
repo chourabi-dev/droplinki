@@ -15,6 +15,8 @@ import {
   PublicCompanyInfo,
   ClientPayoutPreview,
   ClientPayout,
+  DriverSettlementPreview,
+  DriverSettlement,
   Paginated,
 } from "@/types";
 import { ApiError, isNetworkError } from "@/lib/api";
@@ -404,6 +406,37 @@ export const companyPayoutsApi = {
   /** Past validated payouts, newest first. */
   history: (clientId: string) =>
     request<ClientPayout[]>(`/api/company/payouts?clientId=${encodeURIComponent(clientId)}`, { method: "GET" }),
+};
+
+// ---------------------------------------------------------------------------
+// Driver settlements — /api/company/driver-settlements
+// ---------------------------------------------------------------------------
+// End-of-round closing: the driver hands back the cash of the delivered
+// packages and the packages that failed. `preview` lists what the driver still
+// has to close; `validate` switches the statuses permanently (delivered ids →
+// "delivered", returned ids → "EN-DEP-FAILD") and rejects (409) any package
+// that was closed in the meantime, so a package can never be closed twice.
+
+export const companyDriverSettlementsApi = {
+  /** Packages still to close for a driver (EN-LIV / delivered but not yet cashed in). */
+  preview: (driverId: string) =>
+    request<DriverSettlementPreview>(
+      `/api/company/driver-settlements/preview?driverId=${encodeURIComponent(driverId)}`,
+      { method: "GET" }
+    ),
+
+  /** Validates the settlement: exactly these packages are closed with the given outcome. */
+  validate: (driverId: string, deliveredIds: string[], returnedIds: string[]) =>
+    request<DriverSettlement>("/api/company/driver-settlements", {
+      method: "POST",
+      body: { driverId, deliveredIds, returnedIds },
+    }),
+
+  /** Past settlements of a driver, newest first. */
+  history: (driverId: string) =>
+    request<DriverSettlement[]>(`/api/company/driver-settlements?driverId=${encodeURIComponent(driverId)}`, {
+      method: "GET",
+    }),
 };
 
 // ---------------------------------------------------------------------------

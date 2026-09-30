@@ -48,6 +48,7 @@ import CompanyDeliveryDetails from "@/pages/company/CompanyDeliveryDetails";
 import CompanyCreateDelivery from "@/pages/company/CompanyCreateDelivery";
 import CompanyImportDeliveries from "@/pages/company/CompanyImportDeliveries";
 import CompanyClientPayments from "@/pages/company/CompanyClientPayments";
+import CompanyDriverSettlement from "@/pages/company/CompanyDriverSettlement";
 import CompanyStats from "@/pages/company/CompanyStats";
 import CompanySettings from "@/pages/company/CompanySettings";
 import CompanyStationDepot from "@/pages/company/CompanyStationDepot";
@@ -130,6 +131,7 @@ export default function App() {
                           <Route path="/company/deliveries/import" element={<CompanyImportDeliveries />} />
                           <Route path="/company/deliveries/:id" element={<CompanyDeliveryDetails />} />
                           <Route path="/company/payments" element={<CompanyClientPayments />} />
+                          <Route path="/company/driver-settlement" element={<CompanyDriverSettlement />} />
                           <Route path="/company/stats" element={<CompanyStats />} />
                           <Route path="/company/settings" element={<CompanySettings />} />
                         </Route>

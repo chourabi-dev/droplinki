@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, Users, ArrowRight, Loader2, AlertCircle, UploadCloud, PhoneCall, PackageCheck, Truck, Undo2, ExternalLink } from "lucide-react";
+import { Plus, Package, Clock, CheckCircle2, Users, ArrowRight, Loader2, AlertCircle, UploadCloud, PhoneCall, PackageCheck, Truck, Undo2, ExternalLink, House, DollarSign, X } from "lucide-react";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
 import { useCompanyAuth } from "@/context/CompanyAuthContext";
@@ -19,14 +19,34 @@ export default function CompanyDashboard() {
   const { company } = useCompanyAuth();
 
   const today = deliveries.filter((d) => isToday(d.createdAt));
-  const pending = deliveries.filter((d) => d.status !== "delivered");
+  const pending = deliveries.filter((d) => d.status  == "EN-LIV");
+  const enDepot = deliveries.filter((d) => d.status  == "EN-DEP");
   const delivered = deliveries.filter((d) => d.status === "delivered");
+ 
+  const deliveredPayed = deliveries.filter((d) => d.status == "delivered-payed");
+  const faildToDeliver = deliveries.filter((d) => d.status == "EN-DEP-FAILD");
+  
+   const canceled = deliveries.filter((d) => d.status == "CANCELED");
+  
+  
   const unassigned = deliveries.filter((d) => !d.assignedDriverId && d.status !== "delivered");
 
   const stats = [
     { label: "Livraisons aujourd'hui", value: today.length, icon: Package, tint: "bg-brand-50 text-brand-600" },
-    { label: "En cours", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
+    
+    { label: "En dépôt", value: enDepot.length, icon: House, tint: "bg-warn-50 text-warn-600" },
+    
+    { label: "Livraisons en cours", value: pending.length, icon: Clock, tint: "bg-warn-50 text-warn-600" },
+ 
     { label: "Livrées", value: delivered.length, icon: CheckCircle2, tint: "bg-go-50 text-go-600" },
+    
+    { label: "Livré payé", value: deliveredPayed.length, icon: DollarSign, tint: "bg-go-50 text-go-600" },
+    
+    { label: "Échec", value: faildToDeliver.length, icon: X, tint: "bg-red-50 text-red-600" },
+    
+    { label: "Retours", value: canceled.length, icon: DollarSign, tint: "bg-red-50 text-red-600" },
+     
+
     { label: "Livreurs actifs", value: drivers.filter((d) => d.status === "active").length, icon: Users, tint: "bg-ink-100 text-ink-700" },
   ];
 

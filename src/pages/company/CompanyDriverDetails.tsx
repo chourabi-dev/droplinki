@@ -17,6 +17,7 @@ import {
   MapPinned,
   X,
   ChevronDown,
+  HandCoins,
 } from "lucide-react";
 import { useCompanyDrivers, companyErrorMessage } from "@/context/CompanyDriverContext";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
@@ -218,6 +219,12 @@ export default function CompanyDriverDetails() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-3">
+        <Link to={`/company/driver-settlement?driverId=${encodeURIComponent(driver.id)}`}>
+          <Button variant="outline">
+            <HandCoins className="h-4 w-4" /> Clôturer la tournée
+          </Button>
+        </Link>
         {/* Activate / deactivate toggle */}
         <div className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-white px-4 py-3 shadow-card">
           <span className={`text-sm font-semibold ${isActive ? "text-go-600" : "text-ink-400"}`}>
@@ -239,6 +246,7 @@ export default function CompanyDriverDetails() {
               }`}
             />
           </button>
+        </div>
         </div>
       </div>
 

@@ -320,6 +320,8 @@ export interface ClientDelivery {
   paidAt?: string;
   /** Identifiant du versement client qui a traité ce colis. */
   payoutId?: string;
+  /** Identifiant de la clôture livreur (remise des espèces) qui a traité ce colis. */
+  settlementId?: string;
 }
 
 export function clientDeliveryRecipientFullName(d: Pick<ClientDelivery, "recipientFirstName" | "recipientLastName">): string {
@@ -443,6 +445,53 @@ export interface ClientPayout {
   returnFeesTotal: number;
   netAmount: number;
   deliveryIds: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Driver settlements (clôture de tournée / remise des espèces)
+// ---------------------------------------------------------------------------
+// At the end of a round the driver comes back to the depot with the cash
+// collected on the successful deliveries and the packages that could not be
+// delivered. The company picks the driver, marks every package as delivered
+// or returned, and validates: the backend then switches the statuses for good
+// (delivered → "delivered", returned → "EN-DEP-FAILD", i.e. back at the depot)
+// and stamps the packages (`settlementId`) so they can't be closed twice.
+// Once "delivered", a package becomes payable to its client (see payouts).
+
+export type SettlementOutcome = "delivered" | "returned";
+
+export interface DriverSettlementLine {
+  deliveryId: string;
+  recipientName: string;
+  /** Current status of the package (EN-LIV = still on the truck). */
+  status: DeliveryStatus;
+  /** Cash-on-delivery amount owed by the recipient (DT), delivery fees excluded. */
+  amount: number;
+  /** Delivery fees (DT) collected on top of `amount`. */
+  deliveryFees: number;
+}
+
+/** Packages a driver still has to close, as returned by the backend before validation. */
+export interface DriverSettlementPreview {
+  driver: Pick<CompanyDriver, "id" | "firstName" | "lastName" | "phone">;
+  lines: DriverSettlementLine[];
+}
+
+/** A validated settlement (receipt). */
+export interface DriverSettlement {
+  id: string;
+  driverId: string;
+  createdAt: string;
+  deliveredCount: number;
+  returnedCount: number;
+  /** Sum of `amount` on delivered packages. */
+  amountTotal: number;
+  /** Sum of `deliveryFees` on delivered packages. */
+  feesTotal: number;
+  /** amountTotal + feesTotal = cash handed over by the driver. */
+  cashTotal: number;
+  deliveredIds: string[];
+  returnedIds: string[];
 }
 
 /** Pagination metadata returned by paginated list endpoints. */
