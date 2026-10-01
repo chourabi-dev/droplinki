@@ -54,6 +54,7 @@ import CompanySettings from "@/pages/company/CompanySettings";
 import CompanyStationDepot from "@/pages/company/CompanyStationDepot";
 import CompanyStationLoading from "@/pages/company/CompanyStationLoading";
 import CompanyStationReturns from "@/pages/company/CompanyStationReturns";
+import CompanyStationReturnCheck from "@/pages/company/CompanyStationReturnCheck";
 
 // --- Client / Expéditeur space -----------------------------------------
 // A third, entirely separate app mounted under /client/*, for shipper
@@ -118,6 +119,7 @@ export default function App() {
                         <Route path="/company/:companyId/station/depot" element={<CompanyStationDepot />} />
                         <Route path="/company/:companyId/station/loading" element={<CompanyStationLoading />} />
                         <Route path="/company/:companyId/station/returns" element={<CompanyStationReturns />} />
+                        <Route path="/company/:companyId/station/return-check" element={<CompanyStationReturnCheck />} />
 
                         <Route element={<CompanyLayout />}>
                           <Route path="/company/dashboard" element={<CompanyDashboard />} />

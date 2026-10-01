@@ -12,6 +12,8 @@ import {
   Client,
   StationKind,
   StationScanResult,
+  ReturnCheckDecision,
+  ClientDelivery,
   PublicCompanyInfo,
   ClientPayoutPreview,
   ClientPayout,
@@ -469,4 +471,30 @@ export const companyStationsApi = {
       body: { packageId },
       auth: false,
     }),
+
+  /**
+   * "Contrôle des retours" station — step 1. Loads the scanned package with
+   * its full history (journal, call attempts, reschedules...). Read-only:
+   * nothing changes on the package until `decideReturnCheck` is called.
+   * Rejects with a 404 ApiError when the id doesn't match a package of this company.
+   */
+  lookupReturnCheck: (companyId: string, packageId: string, signal?: AbortSignal) =>
+    request<ClientDelivery>(
+      `/api/open/company/${encodeURIComponent(companyId)}/stations/return-check/${encodeURIComponent(packageId)}`,
+      { method: "GET", auth: false, signal }
+    ),
+
+  /**
+   * "Contrôle des retours" station — step 2. The employee's decision on the
+   * scanned package. `return` cancels it for good (status → CANCELED, return
+   * fees apply at the client's payout); `resend` launches a new delivery
+   * attempt (status back to the delivery flow, `rescheduleCount` + 1). The
+   * backend appends a journal entry either way and returns the updated package.
+   * Rejects with a 409 ApiError when the package isn't awaiting a decision.
+   */
+  decideReturnCheck: (companyId: string, packageId: string, input: { decision: ReturnCheckDecision; note?: string }) =>
+    request<ClientDelivery>(
+      `/api/open/company/${encodeURIComponent(companyId)}/stations/return-check/${encodeURIComponent(packageId)}/decision`,
+      { method: "POST", body: input, auth: false }
+    ),
 };

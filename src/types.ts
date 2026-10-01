@@ -192,7 +192,8 @@ export type CallOutcome =
   | "answered_no_location"
   | "location_confirmed"
   | "wrong_number"
-  | "reschedule_requested";
+  | "reschedule_requested"
+  | "answered_canceled"
 
 export const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = {
   no_answer: "Pas de réponse",
@@ -200,6 +201,8 @@ export const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = {
   location_confirmed: "Position confirmée",
   wrong_number: "Numéro erroné",
   reschedule_requested: "Client demande un report",
+  answered_canceled: "Annulée",
+  
 };
 
 export interface CallAttempt {
@@ -322,6 +325,21 @@ export interface ClientDelivery {
   payoutId?: string;
   /** Identifiant de la clôture livreur (remise des espèces) qui a traité ce colis. */
   settlementId?: string;
+  /**
+   * Journal du colis : liste chronologique des actions effectuées dessus
+   * (scans en station, décisions, relances...). Alimenté côté serveur ; affiché
+   * à l'employé à côté des autres informations. Peut être absent sur d'anciens
+   * enregistrements — toujours lire avec `?? []`.
+   */
+  journal: JournalEntry[];
+}
+
+/** One action recorded in a package's journal (see ClientDelivery.journal). */
+export interface JournalEntry {
+  id: string;
+  /** Human-readable description of the action, e.g. "Colis scanné au chargement du camion". */
+  text: string;
+  createdAt: string; // ISO
 }
 
 export function clientDeliveryRecipientFullName(d: Pick<ClientDelivery, "recipientFirstName" | "recipientLastName">): string {
@@ -402,6 +420,30 @@ export interface StationScanResult {
   status?: DeliveryStatus;
   scannedAt: string; // ISO
 }
+
+// ---------------------------------------------------------------------------
+// "Contrôle des retours" station (return check)
+// ---------------------------------------------------------------------------
+// A fourth, different kind of station: it doesn't just stamp a status. The
+// employee scans a package, the screen loads the package's full history
+// (journal, call attempts, reschedules...) and the employee then decides:
+//   - "return": the package is canceled for good and goes back to the sender
+//               (status → CANCELED, return fees apply at the client's payout);
+//   - "resend": the package goes back out for a new delivery attempt.
+// Reachable at /company/:companyId/station/return-check, no login. It is
+// deliberately NOT part of `StationKind` (which only covers the
+// stamp-a-status stations handled by `companyStationsApi.scan`).
+
+export const RETURN_CHECK_LABEL = "Contrôle des retours";
+export const RETURN_CHECK_DESCRIPTION =
+  "Scannez un colis pour afficher son historique, puis décidez : le retourner à l'expéditeur ou le renvoyer en livraison.";
+
+export type ReturnCheckDecision = "return" | "resend";
+
+export const RETURN_CHECK_DECISION_LABELS: Record<ReturnCheckDecision, string> = {
+  return: "Retourner à l'expéditeur",
+  resend: "Renvoyer en livraison",
+};
 
 
 // ---------------------------------------------------------------------------

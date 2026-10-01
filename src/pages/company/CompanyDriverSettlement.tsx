@@ -410,7 +410,7 @@ export default function CompanyDriverSettlement() {
                         {formatDateTime(s.createdAt)} · {s.deliveredCount} livré(s), {s.returnedCount} retour(s)
                       </p>
                     </div>
-                    <p className="font-semibold tabular-nums text-ink-900">{formatAmount(s.cashTotal)}</p>
+                    <p className="font-semibold tabular-nums text-green-500">{formatAmount(s.cashTotal)}</p>
                   </li>
                 ))}
               </ul>

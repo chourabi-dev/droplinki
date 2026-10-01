@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, Users, ArrowRight, Loader2, AlertCircle, UploadCloud, PhoneCall, PackageCheck, Truck, Undo2, ExternalLink, House, DollarSign, X } from "lucide-react";
+import { Plus, Package, Clock, CheckCircle2, Users, ArrowRight, Loader2, AlertCircle, UploadCloud, PhoneCall, PackageCheck, Truck, Undo2, ScanSearch, ExternalLink, House, DollarSign, X } from "lucide-react";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
 import { useCompanyAuth } from "@/context/CompanyAuthContext";
@@ -63,11 +63,7 @@ export default function CompanyDashboard() {
         </div>
         <div className="hidden gap-2 sm:flex">
            
-          <Link to="/company/deliveries/new">
-            <Button>
-              <Plus className="h-4 w-4" /> Nouvelle livraison
-            </Button>
-          </Link>
+          
         </div>
       </div>
 
@@ -110,12 +106,13 @@ export default function CompanyDashboard() {
           Écrans sans connexion, à ouvrir sur l'appareil branché au scanner laser de chaque poste. Scanner un colis y
           déclenche automatiquement la mise à jour de son statut.
         </p>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {company?.id &&
             [
               { to: `/company/${company.id}/station/depot`, label: "Colis en dépôt", icon: PackageCheck, tint: "bg-brand-50 text-brand-600" },
               { to: `/company/${company.id}/station/loading`, label: "Chargement camion", icon: Truck, tint: "bg-go-50 text-go-600" },
               { to: `/company/${company.id}/station/returns`, label: "Retours", icon: Undo2, tint: "bg-red-50 text-red-600" },
+              { to: `/company/${company.id}/station/return-check`, label: "Contrôle des retours", icon: ScanSearch, tint: "bg-warn-50 text-warn-600" },
             ].map((s) => (
               <a
                 key={s.to}
@@ -209,18 +206,7 @@ function EmptyState() {
       </div>
       <p className="font-display font-semibold text-ink-900">Aucune livraison pour l'instant</p>
       <p className="mt-1 max-w-xs text-sm text-ink-500">Créez votre première livraison ou importez-en plusieurs via un fichier CSV.</p>
-      <div className="mt-5 flex gap-2">
-        <Link to="/company/deliveries/import">
-          <Button size="sm" variant="outline">
-            <UploadCloud className="h-4 w-4" /> Importer un CSV
-          </Button>
-        </Link>
-        <Link to="/company/deliveries/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4" /> Nouvelle livraison
-          </Button>
-        </Link>
-      </div>
+       
     </div>
   );
 }

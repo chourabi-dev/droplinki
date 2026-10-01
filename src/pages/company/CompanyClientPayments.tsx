@@ -357,7 +357,17 @@ export default function CompanyClientPayments() {
                         {formatDateTime(p.createdAt)} · {p.deliveredCount} livré(s), {p.returnedCount} retour(s)
                       </p>
                     </div>
-                    <p className="font-semibold tabular-nums text-ink-900">{formatAmount(p.netAmount)}</p>
+                    {
+                      p.netAmount >= 0 ?
+
+                      <p className="font-semibold tabular-nums text-red-500">{formatAmount(p.netAmount)}</p>
+                      :
+                      <p className="font-semibold tabular-nums text-green-500">{formatAmount(p.netAmount * -1)}</p>
+                    
+                    }
+                    
+                    
+
                   </li>
                 ))}
               </ul>

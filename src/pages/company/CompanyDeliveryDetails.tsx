@@ -24,12 +24,14 @@ import {
   Repeat,
   AlertTriangle,
   Banknote,
+  History,
 } from "lucide-react";
 import { useCompanyDeliveries, companyDeliveryErrorMessage } from "@/context/CompanyDeliveryContext";
 import { useCompanyDrivers } from "@/context/CompanyDriverContext";
 import { useToast } from "@/context/ToastContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MapView } from "@/components/MapView";
+import { JournalTimeline } from "@/components/JournalTimeline";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Input";
 import { formatAmount, formatDateTime, formatTime, googleMapsUrl, whatsappUrl } from "@/lib/utils";
@@ -278,6 +280,19 @@ export default function CompanyDeliveryDetails() {
               )}
               <Row icon={Clock} label="Créée le" value={formatDateTime(delivery.createdAt)} />
             </dl>
+          </div>
+
+          {/* Journal — every action recorded on the package */}
+          <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-display font-semibold text-ink-900">
+                <History className="h-4 w-4 text-ink-500" /> Journal du colis
+              </h2>
+              {(delivery.journal?.length ?? 0) > 0 && (
+                <span className="rounded-full bg-ink-100 px-2.5 py-1 text-xs font-semibold text-ink-700">{delivery.journal.length}</span>
+              )}
+            </div>
+            <JournalTimeline entries={delivery.journal} />
           </div>
 
           {/* Reschedule / failed-attempt history */}

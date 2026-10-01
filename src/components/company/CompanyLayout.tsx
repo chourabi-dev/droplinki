@@ -94,13 +94,15 @@ export function CompanyLayout() {
               Entreprise
             </span>
           </button>
-          <button
+          {
+            /**<button
             onClick={() => navigate("/company/deliveries/new")}
             aria-label="Nouvelle livraison"
             className="rounded-lg bg-brand-600 p-2 text-white"
           >
             <Plus className="h-5 w-5" />
-          </button>
+          </button> */
+          }
         </header>
 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
@@ -133,7 +135,9 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
       </div>
 
       <div className="px-5">
-        <button
+       {
+        /**
+         *  <button
           onClick={() => {
             navigate("/company/deliveries/new");
             onNavigate();
@@ -142,6 +146,8 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
         >
           <Plus className="h-4 w-4" /> Nouvelle livraison
         </button>
+         */
+       }
       </div>
 
       <nav className="flex-1 space-y-1 px-3">

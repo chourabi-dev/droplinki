@@ -14,10 +14,14 @@ type Step = "dial" | "outcome" | "next";
 
 const OUTCOMES: { outcome: CallOutcome; label: string; hint: string; icon: typeof Phone; tone: string }[] = [
   { outcome: "location_confirmed", label: "Répondu · adresse confirmée", hint: "Le client est prêt à recevoir", icon: CheckCircle2, tone: "text-go-600 bg-go-50" },
+  { outcome: "answered_canceled", label: "Répondu / Annulée", hint: "Annulation", icon: PhoneOff, tone: "text-red-600 bg-red-50" },
   { outcome: "answered_no_location", label: "Répondu · adresse à préciser", hint: "Indications à noter", icon: HelpCircle, tone: "text-brand-700 bg-brand-50" },
   { outcome: "reschedule_requested", label: "Répondu · demande un report", hint: "Choisir un nouveau créneau", icon: CalendarClock, tone: "text-warn-600 bg-warn-50" },
   { outcome: "no_answer", label: "Pas de réponse / occupé", hint: "Rappel automatique proposé", icon: PhoneOff, tone: "text-ink-700 bg-ink-100" },
   { outcome: "wrong_number", label: "Numéro erroné / injoignable", hint: "Essayer l'autre numéro", icon: PhoneOff, tone: "text-red-600 bg-red-50" },
+  
+  
+  
 ];
 
 interface Props {
@@ -170,6 +174,10 @@ export function CallAssistant({ delivery, onClose, onReschedule }: Props) {
             Numéro appelé : <span className="font-semibold text-ink-900">{dialed === "secondary" ? "secondaire" : "principal"}</span> ·{" "}
             {formatPhone(number(dialed ?? "primary"))}
           </p>
+
+           <Textarea label="Note (optionnel)" rows={2} placeholder="Ex. portail bleu, 2e étage…" value={note} onChange={(e) => setNote(e.target.value)} />
+         
+
           <div className="grid gap-2">
             {OUTCOMES.map((o) => (
               <button
@@ -189,7 +197,6 @@ export function CallAssistant({ delivery, onClose, onReschedule }: Props) {
               </button>
             ))}
           </div>
-          <Textarea label="Note (optionnel)" rows={2} placeholder="Ex. portail bleu, 2e étage…" value={note} onChange={(e) => setNote(e.target.value)} />
           <button onClick={() => setStep("dial")} className="text-sm font-medium text-ink-500 hover:text-ink-900">
             ← Retour
           </button>
