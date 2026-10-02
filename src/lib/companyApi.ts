@@ -17,6 +17,8 @@ import {
   PublicCompanyInfo,
   ClientPayoutPreview,
   ClientPayout,
+  ClientReturnPreview,
+  ClientReturn,
   DriverSettlementPreview,
   DriverSettlement,
   Paginated,
@@ -130,6 +132,48 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   return data as T;
+}
+
+/**
+ * Like `request` above, but for endpoints that return a binary file (PDF)
+ * instead of JSON — e.g. the client return slip. Same auth/error handling,
+ * but resolves to a Blob. Supports POST so the PDF can be generated from a
+ * JSON body (the list of packages shown on screen).
+ */
+async function requestBlob(path: string, options: { method?: string; body?: unknown } = {}): Promise<Blob> {
+  const { method = "GET", body } = options;
+  const headers: Record<string, string> = { Accept: "application/pdf" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const token = getCompanyToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    throw new ApiError(
+      "Impossible de joindre le serveur. Vérifiez que le backend Symfony tourne sur " + API_BASE_URL,
+      0,
+      err
+    );
+  }
+
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json") ? await response.json().catch(() => undefined) : undefined;
+    const message =
+      (data && typeof data === "object" && "message" in data && String((data as any).message)) ||
+      `Erreur serveur (${response.status})`;
+    throw new ApiError(message, response.status, data);
+  }
+
+  const blob = await response.blob();
+  // Make sure the browser's PDF viewer / print dialog recognises the file.
+  return blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" });
 }
 
 export { ApiError, isNetworkError };
@@ -389,13 +433,15 @@ export interface RelaunchDeliveryInput {
 // ---------------------------------------------------------------------------
 // Client payouts — /api/company/payouts
 // ---------------------------------------------------------------------------
-// Pay a client (Expéditeur) for their delivered packages, minus the return
-// fees of their canceled ones. Packages already covered by a validated payout
-// are never returned by `preview`, and `validate` rejects (409) any package
-// that was settled in the meantime, so a client can never be paid twice.
+// Pay a client (Expéditeur) for their delivered packages. The backend only
+// returns delivered packages here: canceled ones are handled by the
+// "Retours clients" flow (companyReturnsApi below). Packages already covered
+// by a validated payout are never returned by `preview`, and `validate`
+// rejects (409) any package that was settled in the meantime, so a client
+// can never be paid twice.
 
 export const companyPayoutsApi = {
-  /** Unsettled delivered + canceled packages of a client, and the company's return fee. */
+  /** Unsettled delivered packages of a client. */
   preview: (clientId: string) =>
     request<ClientPayoutPreview>(`/api/company/payouts/preview?clientId=${encodeURIComponent(clientId)}`, {
       method: "GET",
@@ -408,6 +454,51 @@ export const companyPayoutsApi = {
   /** Past validated payouts, newest first. */
   history: (clientId: string) =>
     request<ClientPayout[]>(`/api/company/payouts?clientId=${encodeURIComponent(clientId)}`, { method: "GET" }),
+
+  /** Generates the payout statement (PDF) for these packages, before validation. Does not change any data. */
+  downloadPdf: (clientId: string, deliveryIds: string[]) =>
+    requestBlob("/api/company/payouts/pdf", { method: "POST", body: { clientId, deliveryIds } }),
+
+  /** Re-downloads the receipt (PDF) of a validated payout. */
+  downloadReceiptPdf: (payoutId: string) =>
+    requestBlob(`/api/company/payouts/${encodeURIComponent(payoutId)}/pdf`),
+};
+
+// ---------------------------------------------------------------------------
+// Client returns — /api/company/returns
+// ---------------------------------------------------------------------------
+// Canceled packages are handed back to their client (Expéditeur). Flow:
+//   1. `preview`   lists the client's canceled packages not yet handed back;
+//   2. `downloadPdf` generates the return slip (PDF) for the selected
+//      packages — read-only, nothing changes server-side. The slip lists the
+//      packages, the return fees due, and has a signature block;
+//   3. the slip is printed, signed by the client, and the fees are paid;
+//   4. `validate` records the handover and stamps exactly these packages
+//      (rejects with 409 any that were handed back in the meantime).
+// See src/RETURNS_API.md for the full backend contract.
+
+export const companyReturnsApi = {
+  /** Canceled packages of a client that haven't been handed back yet, and the company's return fee. */
+  preview: (clientId: string) =>
+    request<ClientReturnPreview>(`/api/company/returns/preview?clientId=${encodeURIComponent(clientId)}`, {
+      method: "GET",
+    }),
+
+  /** Generates the printable return slip (PDF) for these packages. Does not change any data. */
+  downloadPdf: (clientId: string, deliveryIds: string[]) =>
+    requestBlob("/api/company/returns/pdf", { method: "POST", body: { clientId, deliveryIds } }),
+
+  /** Confirms the handover (slip signed, fees paid): marks exactly these packages as returned to the client. */
+  validate: (clientId: string, deliveryIds: string[]) =>
+    request<ClientReturn>("/api/company/returns", { method: "POST", body: { clientId, deliveryIds } }),
+
+  /** Past confirmed handovers of a client, newest first. */
+  history: (clientId: string) =>
+    request<ClientReturn[]>(`/api/company/returns?clientId=${encodeURIComponent(clientId)}`, { method: "GET" }),
+
+  /** Re-downloads the return slip of a past handover. */
+  downloadReceiptPdf: (returnId: string) =>
+    requestBlob(`/api/company/returns/${encodeURIComponent(returnId)}/pdf`),
 };
 
 // ---------------------------------------------------------------------------

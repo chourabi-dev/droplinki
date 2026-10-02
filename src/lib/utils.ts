@@ -65,6 +65,32 @@ export function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Opens the browser print dialog for an in-memory PDF Blob, without leaving
+ * the page (hidden iframe). If the browser can't print the embedded PDF,
+ * falls back to saving the file so the user can print it from disk.
+ */
+export function printBlob(blob: Blob, fallbackFilename = "document.pdf") {
+  const url = URL.createObjectURL(blob);
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch {
+      downloadBlob(blob, fallbackFilename);
+    }
+    // Keep the iframe around long enough for the print dialog to finish.
+    setTimeout(() => {
+      iframe.remove();
+      URL.revokeObjectURL(url);
+    }, 60_000);
+  };
+  iframe.src = url;
+  document.body.appendChild(iframe);
+}
+
 export function whatsappUrl(phoneOrBlank: string, message: string): string {
   const base = phoneOrBlank ? `https://wa.me/${phoneOrBlank}` : `https://wa.me/`;
   return `${base}?text=${encodeURIComponent(message)}`;

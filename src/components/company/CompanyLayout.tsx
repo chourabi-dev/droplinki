@@ -17,6 +17,7 @@ import {
   MapPinned,
   Banknote,
   HandCoins,
+  Undo2,
 } from "lucide-react";
 import { useCompanyAuth } from "@/context/CompanyAuthContext";
 import { Button } from "@/components/ui/Button";
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { to: "/company/clients", label: "Clients", icon: Contact },
   { to: "/company/driver-settlement", label: "Clôture livreur", icon: HandCoins },
   { to: "/company/payments", label: "Paiement clients", icon: Banknote },
+  { to: "/company/client-returns", label: "Retours clients", icon: Undo2 },
   { to: "/company/delivery-zones", label: "Zones de livraison", icon: MapPinned },
   { to: "/company/stats", label: "Statistiques", icon: BarChart3 },
   { to: "/company/settings", label: "Paramètres", icon: Settings },
