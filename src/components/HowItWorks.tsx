@@ -3,23 +3,23 @@ import { PackagePlus, Send, LocateFixed, Navigation } from "lucide-react";
 const STEPS = [
   {
     icon: PackagePlus,
-    title: "Créer la livraison",
-    text: "Le livreur entre le nom du client. DropLink génère un lien unique en une seconde.",
+    title: "Créez vos livraisons",
+    text: "Ajoutez-les une par une ou importez un fichier CSV. DropLink génère un lien de suivi unique pour chacune.",
   },
   {
     icon: Send,
-    title: "Envoyer le lien",
-    text: "Le lien part directement sur WhatsApp, avec un message déjà rédigé.",
+    title: "Le client reçoit son lien",
+    text: "Le lien part sur WhatsApp avec un message déjà rédigé. Aucun compte, aucune application à installer.",
   },
   {
     icon: LocateFixed,
-    title: "Le client partage sa position",
-    text: "Un seul bouton à presser. Aucun compte, aucune application à installer.",
+    title: "Il partage sa position",
+    text: "Un seul bouton à presser, ou vous confirmez l'adresse par téléphone et l'épinglez sur la carte.",
   },
   {
     icon: Navigation,
-    title: "Le livreur navigue",
-    text: "La position exacte s'affiche sur la carte. Direction Google Maps en un tap.",
+    title: "Vos livreurs naviguent",
+    text: "La position exacte s'affiche dans l'app du livreur, avec ouverture directe dans Google Maps.",
   },
 ];
 
