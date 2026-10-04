@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { WifiOff, LayoutGrid, Package, User, Plus, LogOut, Menu, X } from "lucide-react";
+import { WifiOff, LayoutGrid, Package, User, Plus, LogOut, Menu, X, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useClientAuth } from "@/context/ClientAuthContext";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +9,7 @@ import logo from "@/assets/logo.png";
 const NAV_ITEMS = [
   { to: "/client/dashboard", label: "Tableau de bord", icon: LayoutGrid },
   { to: "/client/deliveries", label: "Livraisons", icon: Package },
+  { to: "/client/payments", label: "Paiements", icon: Wallet },
   { to: "/client/profile", label: "Profil", icon: User },
 ];
 
@@ -152,6 +153,7 @@ function ClientTabBar() {
         >
           <Plus className="h-6 w-6" />
         </NavLink>
+        <TabLink to="/client/payments" icon={Wallet} label="Paiements" />
         <TabLink to="/client/profile" icon={User} label="Profil" />
       </div>
     </nav>

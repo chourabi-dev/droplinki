@@ -372,10 +372,12 @@ export interface CompanyStats {
   totalDeliveries: number;
   delivered: number;
   pending: number;
+  returned: number;
   locationConfirmed: number;
   avgTimeToLocationMinutes?: number;
   daily: CompanyStatsDailyPoint[];
   byDriver: CompanyDriverStat[];
+  totalIncome:number
 }
 
 // ---------------------------------------------------------------------------

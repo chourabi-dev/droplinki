@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Loader2, AlertCircle, Package, CheckCircle2, MapPin, Timer, RefreshCcw } from "lucide-react";
+import { Loader2, AlertCircle, Package, CheckCircle2, MapPin, Timer, RefreshCcw, TruckIcon } from "lucide-react";
 import { companyStatsApi } from "@/lib/companyApi";
 import { companyDeliveryErrorMessage } from "@/context/CompanyDeliveryContext";
 import { Button } from "@/components/ui/Button";
 import { CompanyStats as CompanyStatsData } from "@/types";
-import { formatDateTime } from "@/lib/utils";
+import { formatAmount, formatDateTime } from "@/lib/utils";
 
 const RANGES = [
   { days: 7, label: "7 jours" },
@@ -78,8 +78,8 @@ function StatsView({ stats }: { stats: CompanyStatsData }) {
   const cards = [
     { label: "Livraisons totales", value: stats.totalDeliveries, icon: Package, tint: "bg-brand-50 text-brand-600" },
     { label: "Livrées", value: stats.delivered, icon: CheckCircle2, tint: "bg-go-50 text-go-600" },
-    { label: "En attente", value: stats.pending, icon: Timer, tint: "bg-warn-50 text-warn-600" },
-    { label: "Positions confirmées", value: stats.locationConfirmed, icon: MapPin, tint: "bg-ink-100 text-ink-700" },
+    { label: "Retours", value: stats.returned, icon: TruckIcon, tint: "bg-red-50 text-red-600" },
+ 
   ];
 
   const maxDaily = Math.max(1, ...stats.daily.map((d) => Math.max(d.created, d.delivered)));
@@ -99,12 +99,12 @@ function StatsView({ stats }: { stats: CompanyStatsData }) {
         ))}
       </div>
 
-      {stats.avgTimeToLocationMinutes !== undefined && (
-        <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
-          <p className="text-sm text-ink-500">Temps moyen pour obtenir la position d'un client</p>
-          <p className="mt-1 font-display text-xl font-bold text-ink-950">{Math.round(stats.avgTimeToLocationMinutes)} min</p>
-        </div>
-      )}
+      
+      <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card">
+        <p className="text-sm text-ink-500">Revenus de l'entreprise (frais de livraison/retour)</p>
+        <p className="mt-1 font-display text-xl font-bold text-ink-950">{ formatAmount(stats.totalIncome) }</p>
+      </div>
+      
 
       {/* Daily volume chart */}
       <div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-card sm:p-6">

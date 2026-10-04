@@ -71,6 +71,7 @@ import ClientDeliveries from "@/pages/client/ClientDeliveries";
 import ClientDeliveryDetails from "@/pages/client/ClientDeliveryDetails";
 import ClientCreateDelivery from "@/pages/client/ClientCreateDelivery";
 import ClientProfile from "@/pages/client/ClientProfile";
+import ClientPayments from "@/pages/client/ClientPayments";
 import CustomerClientTracking from "./pages/CustomerClientTracking";
 
 export default function App() {
@@ -147,6 +148,7 @@ export default function App() {
                           <Route path="/client/deliveries" element={<ClientDeliveries />} />
                           <Route path="/client/deliveries/:id" element={<ClientDeliveryDetails />} />
                           <Route path="/client/create-delivery" element={<ClientCreateDelivery />} />
+                          <Route path="/client/payments" element={<ClientPayments />} />
                           <Route path="/client/profile" element={<ClientProfile />} />
                         </Route>
 

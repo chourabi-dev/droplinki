@@ -114,7 +114,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     });
   } catch (err) {
     throw new ApiError(
-      "Impossible de joindre le serveur. Vérifiez que le backend Symfony tourne sur " + API_BASE_URL,
+      "Impossible de joindre le serveur.",
       0,
       err
     );
@@ -156,7 +156,7 @@ async function requestBlob(path: string, options: { method?: string; body?: unkn
     });
   } catch (err) {
     throw new ApiError(
-      "Impossible de joindre le serveur. Vérifiez que le backend Symfony tourne sur " + API_BASE_URL,
+      "Impossible de joindre le serveur.",
       0,
       err
     );

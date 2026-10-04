@@ -1,4 +1,4 @@
-import { Client, ClientDelivery } from "@/types";
+import { Client, ClientDelivery, ClientPayout, ClientReturn } from "@/types";
 import { ApiError, isNetworkError } from "@/lib/api";
 
 /**
@@ -91,7 +91,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     });
   } catch (err) {
     throw new ApiError(
-      "Impossible de joindre le serveur. Vérifiez que le backend Symfony tourne sur " + API_BASE_URL,
+      "Impossible de joindre le serveur.",
       0,
       err
     );
@@ -126,7 +126,7 @@ async function requestBlob(path: string): Promise<Blob> {
     response = await fetch(`${API_BASE_URL}${path}`, { headers });
   } catch (err) {
     throw new ApiError(
-      "Impossible de joindre le serveur. Vérifiez que le backend Symfony tourne sur " + API_BASE_URL,
+      "Impossible de joindre le serveur.",
       0,
       err
     );
@@ -220,6 +220,23 @@ export const clientDeliveriesApi = {
    * ClientDeliveryCard / ClientDeliveryDetails).
    */
   remove: (id: string) => request<void>(`/api/client/deliveries/${encodeURIComponent(id)}`, { method: "DELETE" }),
+};
+
+// ---------------------------------------------------------------------------
+// Payments & returns history — /api/client/payouts, /api/client/returns
+// ---------------------------------------------------------------------------
+// Read-only views of what the company already did for THIS client (the
+// company creates payouts / confirms returns from its own dashboard — see
+// companyPayoutsApi / companyReturnsApi). See src/CLIENT_PAYMENTS_API.md.
+
+export const clientPayoutsApi = {
+  /** Payments the company already made to the logged-in client, newest first. */
+  history: () => request<ClientPayout[]>("/api/client/payouts", { method: "GET" }),
+};
+
+export const clientReturnsApi = {
+  /** Canceled packages the company already handed back to the logged-in client, newest first. */
+  history: () => request<ClientReturn[]>("/api/client/returns", { method: "GET" }),
 };
 
 // ---------------------------------------------------------------------------

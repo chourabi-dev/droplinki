@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
-import { Plus, Package, Clock, CheckCircle2, Link2, ArrowRight, Loader2, AlertCircle, Truck, House, DollarSign, Cross, CircleX, Check } from "lucide-react";
+import { Plus, Package, Clock, CheckCircle2, Link2, ArrowRight, Loader2, AlertCircle, Truck, House, DollarSign, Cross, CircleX, Check, Wallet } from "lucide-react";
 import { useClientDeliveries } from "@/context/ClientDeliveryContext";
 import { useClientAuth } from "@/context/ClientAuthContext";
 import { ClientDeliveryCard } from "@/components/client/ClientDeliveryCard";
 import { Button } from "@/components/ui/Button";
+import { computeExpectedCollection } from "@/lib/payout";
+import { formatAmount } from "@/lib/utils";
 
 function isToday(iso: string) {
   const d = new Date(iso);
@@ -27,6 +29,8 @@ export default function ClientDashboard() {
   const completedPayed = deliveries.filter((d) => d.status == "delivered-payed");
  
   
+
+  const expected = computeExpectedCollection(deliveries);
 
   const stats = [
     { label: "Livraisons aujourd'hui", value: todayDeliveries.length, icon: Package, tint: "bg-brand-50 text-brand-600" },
@@ -61,6 +65,29 @@ export default function ClientDashboard() {
           </Button>
         </Link>
       </div>
+
+      {
+        /**
+         * <Link
+        to="/client/payments"
+        className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-go-500/20 bg-go-50 p-4 shadow-card transition-colors hover:border-go-500/40 sm:p-5"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-go-600">
+            <Wallet className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-ink-500">Montant à encaisser auprès de la société de livraison</p>
+            <p className="font-display text-2xl font-bold text-go-600">{formatAmount(expected.total)}</p>
+            <p className="text-xs text-ink-500">
+              {expected.count} colis livré(s) et payé(s), en attente de versement
+            </p>
+          </div>
+        </div>
+        <ArrowRight className="h-4 w-4 shrink-0 text-go-600" />
+      </Link>
+         */
+      }
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {stats.map((s) => (
