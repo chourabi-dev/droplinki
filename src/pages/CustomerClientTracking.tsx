@@ -1,16 +1,22 @@
 import { useEffect, useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { MapPin, Package, Truck, ShieldCheck, CheckCircle2, Loader2, Send } from "lucide-react";
+import { MapPin, Package, Truck, ShieldCheck, CheckCircle2, Loader2, Send, History } from "lucide-react";
 import { clientDeliveriesPublicApi } from "@/lib/clientApi";
 import { ApiError } from "@/lib/api";
 import { MapView } from "@/components/MapView";
 import { LocationPicker, LatLon } from "@/components/LocationPicker";
+import { JournalTimeline } from "@/components/JournalTimeline";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/context/ToastContext";
 import { ClientDelivery, clientDeliveryRecipientFullName } from "@/types";
-import { formatAmount } from "@/lib/utils";
+import { formatAmount, formatDateTime } from "@/lib/utils";
 import logo from "@/assets/logo.png";
 import cebs from "@/assets/cebs-dark.png";
+
+/** The recipient already provided a location: `locationReceivedAt` is set and coordinates exist. */
+function hasProvidedLocation(d: ClientDelivery): boolean {
+  return !!d.locationReceivedAt && d.customerLatitude != null && d.customerLongitude != null;
+}
 
 type ViewState = "loading" | "not_found" | "form" | "submitting" | "shared";
 
@@ -32,10 +38,13 @@ export default function CustomerClientTracking() {
         const data = await clientDeliveriesPublicApi.getPublic(deliveryId);
         if (cancelled) return;
         setDelivery(data);
-        if (data.customerLatitude !== undefined && data.customerLongitude !== undefined) {
+        // Location already provided by the recipient -> read-only map (no relocating).
+        // Otherwise (locationReceivedAt is null) the pin-picking form is kept as is.
+        const locationProvided = hasProvidedLocation(data);
+        if (!locationProvided && data.customerLatitude != null && data.customerLongitude != null) {
           setPin({ lat: data.customerLatitude, lon: data.customerLongitude });
         }
-        setState(data.status === "location_received" || data.status === "delivered" ? "shared" : "form");
+        setState(locationProvided || data.status === "location_received" || data.status === "delivered" ? "shared" : "form");
         // best-effort: let the client (Expéditeur) know the recipient opened the link
         clientDeliveriesPublicApi.markLinkOpened(deliveryId).catch(() => {});
       } catch {
@@ -86,6 +95,8 @@ export default function CustomerClientTracking() {
     );
   }
 
+  const journal = delivery.journal ?? [];
+
   return (
     <div className="min-h-screen bg-ink-50">
       <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 py-8">
@@ -94,23 +105,7 @@ export default function CustomerClientTracking() {
         </div>
 
         <div className="flex-1 rounded-3xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
-          {state === "shared" ? (
-            <SharedState delivery={delivery} />
-          ) : (
-            <>
-              <div className="flex items-center gap-3 rounded-2xl bg-brand-50 p-3.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
-                  <Package className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-brand-800">
-                    Colis pour {clientDeliveryRecipientFullName(delivery)}
-                  </p>
-                  <p className="text-xs text-brand-600">Aidez le livreur à vous trouver précisément</p>
-                </div>
-              </div>
-
-              <dl className="mt-5 space-y-2.5 text-sm">
+          <dl className="mt-5 space-y-2.5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-ink-500">Commande</dt>
                   <dd className="font-medium text-ink-900">#{delivery.id}</dd>
@@ -146,6 +141,25 @@ export default function CustomerClientTracking() {
                   </div>
                 )}
               </dl>
+              
+          
+          {state === "shared" ? (
+            <SharedState delivery={delivery} />
+          ) : (
+            <>
+              <div className="flex items-center gap-3 rounded-2xl bg-brand-50 p-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-brand-800">
+                    Colis pour {clientDeliveryRecipientFullName(delivery)}
+                  </p>
+                  <p className="text-xs text-brand-600">Aidez le livreur à vous trouver précisément</p>
+                </div>
+              </div>
+
+              
 
               <div className="mt-7">
                 <div className="mb-3 flex items-center gap-2">
@@ -189,6 +203,16 @@ export default function CustomerClientTracking() {
           )}
         </div>
 
+        {journal.length > 0 && (
+          <div className="mt-5 rounded-3xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+            <div className="mb-4 flex items-center gap-2">
+              <History className="h-4 w-4 text-brand-600" />
+              <h2 className="font-display text-base font-bold text-ink-950">Journal du colis</h2>
+            </div>
+            <JournalTimeline entries={journal} />
+          </div>
+        )}
+
         <p className="mt-6 text-center text-xs text-ink-400 m-auto">All rights reserved | PowredBy</p>
         <p className="text-center text-xs text-ink-400 m-auto">
           <a href="https://www.chourabi-e-business-solutions.com/" target="_blank">
@@ -209,6 +233,7 @@ function CenteredShell({ children }: { children: ReactNode }) {
 }
 
 function SharedState({ delivery }: { delivery: ClientDelivery }) {
+  const hasCoords = delivery.customerLatitude != null && delivery.customerLongitude != null;
   return (
     <div>
       <div className="flex flex-col items-center text-center">
@@ -216,19 +241,22 @@ function SharedState({ delivery }: { delivery: ClientDelivery }) {
           <CheckCircle2 className="h-7 w-7" strokeWidth={2.5} />
         </div>
         <h1 className="mt-4 font-display text-xl font-bold text-ink-950">Position partagée !</h1>
-        <p className="mt-1.5 text-sm text-ink-500">Le livreur a maintenant votre position exacte.</p>
+        <p className="mt-1.5 text-sm text-ink-500">Le livreur a votre position exacte.</p>
         <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-go-50 px-3 py-1 text-xs font-semibold text-go-600">
           <span className="h-1.5 w-1.5 rounded-full bg-go-500" /> Position reçue
+          {delivery.locationReceivedAt && <> · {formatDateTime(delivery.locationReceivedAt)}</>}
         </span>
       </div>
 
-      {delivery.customerLatitude !== undefined && delivery.customerLongitude !== undefined && (
-        <div className="mt-5 h-56 overflow-hidden rounded-2xl border border-ink-100">
-          <MapView customer={{ lat: delivery.customerLatitude, lon: delivery.customerLongitude }} interactive={false} zoom={15} />
+      {hasCoords && (
+        <div className="mt-5 h-64 overflow-hidden rounded-2xl border border-ink-100">
+          <MapView
+            customer={{ lat: delivery.customerLatitude!, lon: delivery.customerLongitude! }}
+            interactive={false}
+            zoom={15}
+          />
         </div>
       )}
-
-      <p className="mt-5 text-center text-sm text-ink-500">Vous pouvez fermer cette page maintenant.</p>
     </div>
   );
 }

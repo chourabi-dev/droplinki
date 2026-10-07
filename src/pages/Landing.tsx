@@ -219,7 +219,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PRICING */}
+      {/* PRICING 
       <section id="pricing" className="border-t border-ink-100 bg-ink-50/60 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mb-12 max-w-xl">
@@ -270,6 +270,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      */}
 
       {/* CTA */}
       <section className="py-16 sm:py-20">
