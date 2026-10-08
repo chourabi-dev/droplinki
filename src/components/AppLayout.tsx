@@ -6,6 +6,7 @@ import { AppHeader } from "./AppHeader";
 import { MobileTabBar } from "./MobileTabBar";
 import { ReminderBanner } from "./ReminderBanner";
 import { DriverPlannerProvider } from "@/context/DriverPlannerContext";
+import { LocationGate } from "./LocationGate";
 
 
 export function AppLayout() {
@@ -39,17 +40,21 @@ export function AppLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  // The planner (GPS watch, route, reminders) only runs for a signed-in driver.
+  // Nothing of the driver app renders until the driver is sharing their
+  // location (LocationGate), which also reports it to the server. The planner
+  // (GPS watch, route, reminders) only runs for a signed-in, located driver.
   return (
-    <DriverPlannerProvider>
-      <div className="min-h-screen bg-ink-50">
-        <AppHeader />
-        <ReminderBanner />
-        <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10">
-          <Outlet />
-        </main>
-        <MobileTabBar />
-      </div>
-    </DriverPlannerProvider>
+    <LocationGate>
+      <DriverPlannerProvider>
+        <div className="min-h-screen bg-ink-50">
+          <AppHeader />
+          <ReminderBanner />
+          <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pb-10">
+            <Outlet />
+          </main>
+          <MobileTabBar />
+        </div>
+      </DriverPlannerProvider>
+    </LocationGate>
   );
 }

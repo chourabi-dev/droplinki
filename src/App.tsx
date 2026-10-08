@@ -40,6 +40,7 @@ import CompanySignup from "@/pages/company/CompanySignup";
 import CompanyDashboard from "@/pages/company/CompanyDashboard";
 import CompanyDrivers from "@/pages/company/CompanyDrivers";
 import CompanyDriverDetails from "@/pages/company/CompanyDriverDetails";
+import CompanyDriverMovements from "@/pages/company/CompanyDriverMovements";
 import CompanyClients from "@/pages/company/CompanyClients";
 import CompanyClientDetails from "@/pages/company/CompanyClientDetails";
 import CompanyDeliveryZones from "@/pages/company/CompanyDeliveryZones";
@@ -127,6 +128,7 @@ export default function App() {
                           <Route path="/company/dashboard" element={<CompanyDashboard />} />
                           <Route path="/company/drivers" element={<CompanyDrivers />} />
                           <Route path="/company/drivers/:id" element={<CompanyDriverDetails />} />
+                          <Route path="/company/drivers/:id/movements" element={<CompanyDriverMovements />} />
                           <Route path="/company/clients" element={<CompanyClients />} />
                           <Route path="/company/clients/:id" element={<CompanyClientDetails />} />
                           <Route path="/company/delivery-zones" element={<CompanyDeliveryZones />} />

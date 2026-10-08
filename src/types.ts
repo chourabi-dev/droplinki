@@ -183,6 +183,18 @@ export interface CompanyDriver {
   createdAt: string;
 }
 
+/** One GPS fix recorded for a driver while they were on the road. */
+export interface DriverLocationPoint {
+  latitude: number;
+  longitude: number;
+  /** ISO 8601 timestamp of the fix. */
+  recordedAt: string;
+  /** Speed in km/h, when the device reported it. */
+  speedKmh?: number;
+  /** GPS accuracy in meters, when the device reported it. */
+  accuracy?: number;
+}
+
 export function companyDriverFullName(d: Pick<CompanyDriver, "firstName" | "lastName">): string {
   return `${d.firstName} ${d.lastName}`.trim();
 }

@@ -2,6 +2,7 @@ import {
   Company,
   CompanyDelivery,
   CompanyDriver,
+  DriverLocationPoint,
   CompanyStats,
   CallOutcome,
   CsvImportRow,
@@ -281,6 +282,9 @@ export interface CreateCompanyDriverInput {
   sendCredentialsEmail?: boolean;
 }
 
+/** 0 = today, 1 = yesterday, 7 = last 7 days. */
+export type DriverMovementsRange = 0 | 1 | 7;
+
 export const companyDriversApi = {
   list: () => request<CompanyDriver[]>("/api/company/drivers", { method: "GET" }),
 
@@ -292,7 +296,58 @@ export const companyDriversApi = {
 
   remove: (id: string) =>
     request<void>(`/api/company/drivers/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
+  /**
+   * GPS points recorded for a driver over a period, oldest first. Powers the
+   * "Mouvements" map (see src/pages/company/CompanyDriverMovements.tsx and
+   * src/DRIVER_MOVEMENTS_API.md for the contract).
+   *
+   * `range` is a day count, not a date: 0 = today, 1 = yesterday,
+   * 7 = the last 7 days. The server works out the actual dates.
+   */
+  locations: async (id: string, range: DriverMovementsRange = 0): Promise<DriverLocationPoint[]> => {
+    const raw = await request<unknown>(
+      `/api/company/drivers/${encodeURIComponent(id)}/locations?range=${range}`,
+      { method: "GET" }
+    );
+    return normalizeDriverLocations(raw);
+  },
 };
+
+/**
+ * Accepts either a bare array or an `{ items | points | data }` envelope, and
+ * both `latitude/longitude` and `lat/lng/lon` field names, so the UI keeps
+ * working whichever shape the backend settles on. Invalid rows are dropped and
+ * the result is sorted oldest → newest.
+ */
+function normalizeDriverLocations(raw: unknown): DriverLocationPoint[] {
+  const list: unknown[] = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === "object"
+      ? ((raw as any).items ?? (raw as any).points ?? (raw as any).data ?? [])
+      : [];
+
+  const points: DriverLocationPoint[] = [];
+  for (const row of list as any[]) {
+    if (!row || typeof row !== "object") continue;
+    const latitude = Number(row.latitude ?? row.lat);
+    const longitude = Number(row.longitude ?? row.lng ?? row.lon);
+    const recordedAt = String(row.recordedAt ?? row.createdAt ?? row.timestamp ?? "");
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) continue;
+    if (!recordedAt || Number.isNaN(new Date(recordedAt).getTime())) continue;
+    const speed = row.speedKmh ?? row.speed;
+    const accuracy = row.accuracy;
+    points.push({
+      latitude,
+      longitude,
+      recordedAt,
+      speedKmh: speed != null && Number.isFinite(Number(speed)) ? Number(speed) : undefined,
+      accuracy: accuracy != null && Number.isFinite(Number(accuracy)) ? Number(accuracy) : undefined,
+    });
+  }
+  return points.sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+}
 
 // ---------------------------------------------------------------------------
 // Clients roster (Expéditeurs) — /api/company/clients

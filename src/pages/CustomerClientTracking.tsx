@@ -104,7 +104,23 @@ export default function CustomerClientTracking() {
           <img src={logo} width={250} />
         </div>
 
+        
+
         <div className="flex-1 rounded-3xl border border-ink-100 bg-white p-6 shadow-card sm:p-8">
+          
+           <div className="flex  items-center gap-3 rounded-2xl bg-brand-50 p-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-brand-800">
+                    Colis pour {clientDeliveryRecipientFullName(delivery)}
+                  </p>
+                  <p className="text-xs text-brand-600">Aidez le livreur à vous trouver précisément</p>
+                </div>
+              </div>
+
+          
           <dl className="mt-5 space-y-2.5 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-ink-500">Commande</dt>
@@ -147,17 +163,7 @@ export default function CustomerClientTracking() {
             <SharedState delivery={delivery} />
           ) : (
             <>
-              <div className="flex items-center gap-3 rounded-2xl bg-brand-50 p-3.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
-                  <Package className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-brand-800">
-                    Colis pour {clientDeliveryRecipientFullName(delivery)}
-                  </p>
-                  <p className="text-xs text-brand-600">Aidez le livreur à vous trouver précisément</p>
-                </div>
-              </div>
+             
 
               
 

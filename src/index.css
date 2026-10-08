@@ -66,3 +66,22 @@ h1, h2, h3, h4 {
 .leaflet-pane{
   z-index: 10 !important;
 }
+
+/* Company › driver movements loading screen: the route "draws" itself. */
+.dl-trail {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: dl-trail-draw 1.8s ease-in-out infinite;
+}
+@keyframes dl-trail-draw {
+  0% { stroke-dashoffset: 100; }
+  70%, 100% { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dl-trail { animation: none; stroke-dashoffset: 0; }
+}
+
+
+.leaflet-control-attribution.leaflet-control{
+  display: none;
+}

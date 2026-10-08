@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Loader2, AlertCircle, Users, Car, X, MoreVertical, Trash2, BadgeCheck, MapPin, ChevronRight, Eye } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Users, Car, X, MoreVertical, Trash2, BadgeCheck, MapPin, ChevronRight, Eye, Search, Route as RouteIcon } from "lucide-react";
 import { useCompanyDrivers, companyErrorMessage } from "@/context/CompanyDriverContext";
 import { useCompanyDeliveries } from "@/context/CompanyDeliveryContext";
 import { useCompanyDeliveryZones } from "@/context/CompanyDeliveryZoneContext";
@@ -22,6 +22,16 @@ const STATUS_TINTS: Record<CompanyDriver["status"], string> = {
   inactive: "bg-ink-100 text-ink-500",
 };
 
+/** Lowercase + strip accents so "Hédi" matches "hedi". */
+function normalizeSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function CompanyDrivers() {
   const { drivers, isLoading, error, addDriver, updateDriver, removeDriver } = useCompanyDrivers();
   const { deliveries } = useCompanyDeliveries();
@@ -30,6 +40,29 @@ export default function CompanyDrivers() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const filteredDrivers = useMemo(() => {
+    const terms = normalizeSearch(query).split(" ").filter(Boolean);
+    if (terms.length === 0) return drivers;
+    return drivers.filter((d) => {
+      const haystack = normalizeSearch(
+        [
+          companyDriverFullName(d),
+          d.phone,
+          d.cin,
+          d.email,
+          d.plateNumber,
+          VEHICLE_TYPE_LABELS[d.vehicleType],
+          STATUS_LABELS[d.status],
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
+      // Every typed word must match somewhere ("karim 2012" finds Karim … 2012…)
+      return terms.every((t) => haystack.includes(t));
+    });
+  }, [drivers, query]);
 
   const activeCount = (driverId: string) => deliveries.filter((d) => d.assignedDriverId === driverId && d.status == "EN-LIV").length;
   const zoneNames = (ids: string[]) => zones.filter((z) => ids.includes(z.id)).map((z) => z.name);
@@ -70,6 +103,36 @@ export default function CompanyDrivers() {
 
       {showForm && <AddDriverForm onClose={() => setShowForm(false)} onCreate={addDriver} />}
 
+      {!isLoading && !error && drivers.length > 0 && (
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un nom, un téléphone, une plaque..."
+              aria-label="Rechercher un livreur"
+              className="w-full rounded-xl border border-ink-300 bg-white py-2.5 pl-9 pr-9 text-sm focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10 sm:w-96"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+                aria-label="Effacer la recherche"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-ink-500" aria-live="polite">
+            {query.trim()
+              ? `${filteredDrivers.length} résultat${filteredDrivers.length > 1 ? "s" : ""} sur ${drivers.length}`
+              : `${drivers.length} livreur${drivers.length > 1 ? "s" : ""}`}
+          </p>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex justify-center py-14">
           <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
@@ -91,6 +154,17 @@ export default function CompanyDrivers() {
             <Plus className="h-4 w-4" /> Ajouter un livreur
           </Button>
         </div>
+      ) : filteredDrivers.length === 0 ? (
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-ink-200 bg-white px-6 py-14 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-ink-100 text-ink-500">
+            <Search className="h-6 w-6" />
+          </div>
+          <p className="font-display font-semibold text-ink-900">Aucun livreur trouvé</p>
+          <p className="mt-1 max-w-xs text-sm text-ink-500">Aucun livreur ne correspond à « {query.trim()} ». Vérifiez l'orthographe ou essayez un autre mot.</p>
+          <Button size="sm" variant="ghost" className="mt-5" onClick={() => setQuery("")}>
+            Effacer la recherche
+          </Button>
+        </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card">
           <table className="w-full text-left text-sm">
@@ -106,7 +180,7 @@ export default function CompanyDrivers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
-              {drivers.map((d) => (
+              {filteredDrivers.map((d) => (
                 <tr
                   key={d.id}
                   className="cursor-pointer hover:bg-ink-50"
@@ -150,6 +224,14 @@ export default function CompanyDrivers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => navigate(`/company/drivers/${d.id}/movements`)}
+                        className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-100 hover:text-brand-600"
+                        aria-label="Voir les derniers mouvements"
+                        title="Derniers mouvements"
+                      >
+                        <RouteIcon className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => navigate(`/company/drivers/${d.id}`)}
                         className="rounded-lg p-1.5 text-ink-400 hover:bg-ink-100 hover:text-brand-600"

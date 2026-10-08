@@ -223,6 +223,22 @@ export const deliveriesApi = {
 // Driver / subscription
 // ---------------------------------------------------------------------------
 
+/** One GPS fix of the signed-in driver, reported to the company's movements map. */
+export interface DriverLocationInput {
+  latitude: number;
+  longitude: number;
+  /** ISO 8601, device clock — so points queued while offline keep their real time. */
+  recordedAt: string;
+  /** Meters. */
+  accuracy?: number;
+  /** km/h, when the device reports it. */
+  speedKmh?: number;
+}
+
 export const driverApi = {
   upgradeToPro: () => request<Driver>("/api/driver/upgrade", { method: "POST" }),
+
+  /** Reports the driver's current position (see src/DRIVER_MOVEMENTS_API.md). */
+  sendLocation: (input: DriverLocationInput) =>
+    request<void>("/api/driver/locations", { method: "POST", body: input }),
 };
