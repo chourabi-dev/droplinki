@@ -13,6 +13,7 @@ import {
   Client,
   StationKind,
   StationScanResult,
+  StationDriver,
   ReturnCheckDecision,
   ClientDelivery,
   PublicCompanyInfo,
@@ -612,12 +613,24 @@ export const companyStationsApi = {
     request<PublicCompanyInfo>(`/api/open/company/${encodeURIComponent(companyId)}`, { method: "GET", auth: false }),
 
   /** Registers one scan at a given station for a package/delivery id. */
-  scan: (companyId: string, station: StationKind, packageId: string) =>
+  scan: (companyId: string, station: StationKind, packageId: string, driverId?: string) =>
     request<StationScanResult>(`/api/open/company/${encodeURIComponent(companyId)}/stations/${station}/scan`, {
       method: "POST",
-      body: { packageId },
+      // `driverId` is only sent by the loading station (driver badge scanned first).
+      body: driverId ? { packageId, driverId } : { packageId },
       auth: false,
     }),
+
+  /**
+   * "Chargement du camion" station — resolves a scanned driver badge into the
+   * driver's identity. Rejects with a 404 ApiError when the badge is unknown
+   * (or the driver is inactive / belongs to another company).
+   */
+  lookupDriverBadge: (companyId: string, badge: string, signal?: AbortSignal) =>
+    request<StationDriver>(
+      `/api/open/company/${encodeURIComponent(companyId)}/stations/loading/driver/${encodeURIComponent(badge)}`,
+      { method: "GET", auth: false, signal }
+    ),
 
   /**
    * "Contrôle des retours" station — step 1. Loads the scanned package with

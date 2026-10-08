@@ -435,6 +435,21 @@ export interface StationScanResult {
   scannedAt: string; // ISO
 }
 
+/**
+ * Driver identified by scanning their badge at the "Chargement du camion"
+ * station. Deliberately minimal (no CIN, no email, no address): this comes from
+ * a public, unauthenticated endpoint and is only meant to let the employee see
+ * WHO is loading. See src/STATION_LOADING_DRIVER_API.md.
+ */
+export interface StationDriver {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  vehicleType?: VehicleType;
+  plateNumber?: string;
+}
+
 // ---------------------------------------------------------------------------
 // "Contrôle des retours" station (return check)
 // ---------------------------------------------------------------------------
